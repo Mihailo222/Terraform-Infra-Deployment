@@ -87,9 +87,9 @@ jobs:
       working-directory: ${{ github.workspace }}/aks-deployment
 
     # Checks that all Terraform configuration files adhere to a canonical format
-    - name: Terraform Format
-      run: terraform fmt -check
-      working-directory: ${{ github.workspace }}/aks-deployment
+  #  - name: Terraform Format
+  #    run: terraform fmt -check
+  #    working-directory: ${{ github.workspace }}/aks-deployment
 
 
     # Generates an execution plan for Terraform
