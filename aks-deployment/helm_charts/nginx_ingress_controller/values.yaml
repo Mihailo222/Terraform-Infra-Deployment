@@ -1,0 +1,17 @@
+# just overriding values.yaml !!! all other are default 
+
+ingress-nginx: # this is dependency chart name !!!
+  namespaceOverride: ingress-nginx 
+  controller:
+    replicaCount: 2
+    service:
+      type: LoadBalancer
+      annotations: # see why are these important !!!
+        service.beta.kubernetes.io/azure-load-balancer-health-probe-protocol: Http
+        service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: /healthz
+
+
+# it will be deployed to prometheus-grafana nss ??? why
+
+# helm dependency build nginx_ingress_controller
+# helm install helm-ingress-nginx-custom-release nginx_ingress_controller --namespace ingress-nginx --create-namespace

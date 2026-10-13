@@ -1,0 +1,6 @@
+---
+git_version: "2.50.1"
+architecture: "x64"
+git_installer_path: C:\Users\azureuser\Downloads\Git-{{ git_version }}-{{ architecture }}-bit.exe
+git_binary_url: https://github.com/git-for-windows/git/releases/download/v{{ git_version }}.windows.1/Git-{{ git_version }}-{{ architecture }}-bit.exe
+#https://github.com/git-for-windows/git/releases/download/v2.50.1.windows.1/Git-2.50.1-64-bit.exe

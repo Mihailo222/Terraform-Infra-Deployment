@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include analytics.fullname .}}
+  labels:
+    {{- include "analytics.labels" . | nindent 4 }}
+spec: 
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }} 
+  selector: 
+    matchLabels:
+      {{- include "analytics.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "analytics.selectorLabels" . | nindent 8 }}
+    spec: 
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds | default 120 }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "analytics.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          env: 
+            {{- toYaml .Values.applicationEnvVars | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          lifecycle:
+            preStop:
+              sleep: 
+                seconds: {{ .Values.preStopSleepSeconds | default 20 }}
+            terminationMessagePath: /dev/termination-log
+            terminationMessagePolicy: File
+            resources:
+              {{- toYaml .Values.resources | nindent 12 }}
+            volumeMounts:
+              {{- if .Values.persistence.enabled }}
+                {{- toYaml .Values.applicationVolumeMounts | nindent 12 }}
+              {{- end }}
+              {{- if .Values.mongoTLSEnabled.enabled }}
+                {{- toYaml .Values.mongoTLSVolumeMounts | nindent 12 }}
+              {{- end }}
+            volumes: 
+              {{- if .Values.persistence.enabled }}
+                - name: cas6 
+                  persistentVolumeClaim:
+                    claimName: fiscas6storageacct-pvc 
+              {{- end }}
+              {{- if .Values.mongoTLSEnabled.enabled }}
+                {{- toYaml .Values.mongoTLSVolumes | nindent 8 }}
+              {{- end }}
+              {{- with .Values.nodeSelector }}
+              nodeSelector: 
+               {{ -toYaml . | nindent 8 }}
+              {{- end }}
+              {{- with .Values.affinity }}
+              affinity:  
+               {{ -toYaml . | nindent 8 }}
+              {{- end }}
+              {{- with .Values.tolerations }}
+              tolerations:
+                {{- toYaml . | nindent 8 }}
+              {{- end }}

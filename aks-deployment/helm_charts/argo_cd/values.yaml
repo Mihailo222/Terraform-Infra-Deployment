@@ -1,0 +1,12 @@
+customIngressResource:
+  enabled: true 
+  ingressClassName: nginx 
+  argoHost: argocd.local
+  service:
+    name: argo-cd-release-argocd-server
+    port: 443
+    servicenamespace: argocd
+
+# helm dependency build argo_cd
+# helm install argo-cd-release argo_cd --namespace argocd --create-namespace
+# access ui on chrome only because mac browser can't procede with http to argoCD ui ( without certificate )

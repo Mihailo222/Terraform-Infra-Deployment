@@ -1,0 +1,173 @@
+> az login
+> az aks get-credentials --resource-group aks-test-rg --name exercises-aks #kubeconfig created
+> kubectl get ns
+
+#install prometheus stack 
+
+helm install prometheus oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack
+
+# access grafana -> posto su sve services clusterIP tipa, sta treba da radis u producton environmentima jeste da konfigurises ingress i preko njeg expozujes servis za grafanu 
+
+#edit svc to be type LoadBalancer
+kubectl edit svc prometheus-grafana
+ kubectl get secret prometheus-grafana -o yaml #base64 decode admin uname and password or deploy ingress !!!
+
+
+# prvi nacin da se expozuje grafana jeste da service promenis da bude tipa LoadBalancer. 
+# primer ingress-a
+
+apiVersion: networking.k8s.io/v1beta1 
+kind: Ingress 
+metadata: 
+  name: myapp-ingress 
+spec: 
+  rules: 
+  - host: <SOME DOMAIN> # ovo je domen koji je registrovan koji je domen kojem se obraca klijent i prosledjuje request na dati service 
+    http: # protokol kojim incoming request gets forwarded to the internal service, ne http iz domena registrovanog !!!
+      paths:
+      - backend:
+          serviceName: <InternalServiceName> # this is for ClusterIP services!
+          servicePort: <InternalServicePort>
+
+
+# install nginx-ingress controller in k8s cluster !!
+
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx/
+CHART_VERSION="4.4.0"
+APP_VERSION="1.5.1"
+mkdir  ./kubernetes_test_charts/nginx-ingress-controller/manifests/nginx-ingress.${APP_VERSION}.yaml
+helm template ingress-nginx ingress-nginx \
+--repo https://kubernetes.github.io/ingress-nginx \
+--version ${CHART_VERSION} \
+--namespace ingress-nginx \
+> ./kubernetes_test_charts/nginx-ingress-controller/manifests/nginx-ingress.${APP_VERSION}.yaml
+
+kubectl create ns ingress-nginx
+kubectl apply -f ./kubernetes_test_charts/nginx-ingress-controller/manifests/nginx-ingress.${APP_VERSION}.yaml
+
+# traffic u nas k8s cluster dolazi preko tzv ingress service-a tipa LoadBalancer
+
+#port-forward that svc OR do the following
+
+# creating ingress resource for deploying a grafana service !!!
+
+#domain based routing 
+
+apiVersion: networking.k8s.io/v1 
+kind: Ingress 
+metadata: 
+  name: prometheus-grafana
+spec: 
+  ingressClassName: nginx #for nginx ingress controller 
+  rules: 
+  - host: my-grafana.ui 
+    http:
+      paths:
+      - path: /
+        pathType: Prefix s
+        backend:
+          service:
+            name: prometheus-grafana
+            port:
+              number: 80
+
+ kubectl apply -f  resources/K8S/ingress.yaml
+
+ #add your ingress service public IP with domain in your local /etc/hosts file
+
+ az network nsg create \
+  --resource-group aks-test-rg \
+  --name aks-custom-nsg      
+
+
+ az network nsg rule create \
+  --resource-group aks-test-rg \
+  --nsg-name aks-custom-nsg \
+  --name AllowWorkstation \
+  --priority 1000 \
+  --direction Inbound \
+  --access Allow \
+  --protocol '*' \
+  --source-address-prefixes '82.117.214.166' \
+  --destination-address-prefixes '*' \
+  --destination-port-ranges '*' \
+
+
+#ok, vidi sta je u 1. sta u 2. rg, ja sad stavljam isti sec rule na MC_aks-test-rg_exercises-aks_eastus resource group gde je deployovani nood pools 
+
+ az network nsg create \
+  --resource-group MC_aks-test-rg_exercises-aks_eastus \
+  --name aks-custom-nsg-on-pool      
+
+
+ az network nsg rule create \
+  --resource-group MC_aks-test-rg_exercises-aks_eastus \
+  --nsg-name aks-custom-nsg-on-pool \
+  --name AllowWorkstation \
+  --priority 1000 \
+  --direction Inbound \
+  --access Allow \
+  --protocol '*' \
+  --source-address-prefixes '82.117.214.166' \
+  --destination-address-prefixes '*' \
+  --destination-port-ranges '*' \
+
+  # anotacija koja je sve resila:
+  kubectl patch svc ingress-nginx-controller -n ingress-nginx -p '{"metadata":{"annotations":{"service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path":"/healthz","service.beta.kubernetes.io/azure-load-balancer-health-probe-protocol":"Http"}}}'
+
+finally:
+
+type into browser: http://my-grafana.ui from your workstation
+
+# how to create a helm chart: 
+
+> helm create <helm-chart-name>
+
+# kreiraj values.yaml fajl ponovo tj. obrisi sve i custoizuj sta ti treba 
+# charts folder - sluzi za helm chartove koji su dependenciji
+# templates folder - tu su ti resursi koje moras da deploy-ujes 
+
+> helm install <release-name>  <folder_name>/ 
+
+# if you want to see values for some helm chart ( ingress-nginx is a release name)
+helm show values ingress-nginx --repo https://kubernetes.github.io/ingress-nginx
+
+# how to deploy custom chart with dependency chart:
+> cd <CHART_FOLDER>/
+> helm dependency build #Chart.lock file appears 
+> helm install <my-custom-local-release-name> <custom-helm-chart-location-foldr>/
+
+# delete deployed stuff 
+> helm uninstall <my-custom-local-release-name>
+
+# deploy staff to unexisting ns
+> helm install helm-ingress-nginx-custom-2 nginx_ingress_controller --namespace ingress-nginx --create-namespace -f nginx_ingress_controller/values.yaml
+
+PRIORITY CLASS EXPLAINED
+------------------------
+
+- What is Priority class and explain the PC configuration:
+
+- The priorityclass object - on se assignuje na pod na osnovu njegove bitnosti 
+
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: monitoring-low
+value: -1000 # the lower the number, the lower the priority 
+globalDefault: false #govori da li PC je default PC za cluster za sve one podove koji nemaju specified PC. Samo jedan PC moze biti default. Medjutim, ako imas vise PC sa globalDefault=true, default je onaj PC sa najmanjom vrednosti. 
+preemptionPolicy: Never # this is a policy for preempting with lower priority. Value Never - pod never preempts pods with lower priority ( pod nikad ne preduhitri podove sa manjim prioritetom). PreemptLowerPriority means pod can preempt other pods with lower priority. 
+description: Lower-priority, non-preempting class for monitoring workloads on the shared rabit node pool.
+
+- Ovaj priority-class mora da se stavi na helm chartove u njihove values.yaml kako bi se ovaj priority ispostovao nad resursima koje oni deploy-uju:
+
+PriorityClass definise mapiranje sa priority class name-a na priority class integer value ( bilo koji integer )
+Poenta ovog PC-a je da koordinise scheduling podova onda kada su resursi za deployment podova itd deljeni sa drugim - tj prioritet schedylovanja podova na ingrastrukturi. Ovo su lower-priority pods i nece ometati druge podove tokom schedulovanja. 
+
+Ovaj nas PC tj njgova poenta jeste da se ovaj PC stavi na sve podove koji su monitoring, jer su to low priority podovi i ne zelimo u sl da se desi da nema vise res. na k8s clusteru da ovi podovi ubiju neke druge podove. Tako da, zato postoji ovaj PC i on se stavlja na sve nase podove monitoring !!!
+
+ARGOCD SYNC PHASES AND WAVE 
+---------------------------
+
+- What is annotation argocd.argoproj.io/sync-wave: "<NUMBER>"
+- 

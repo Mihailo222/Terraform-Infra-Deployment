@@ -1,0 +1,14 @@
+apiVersion: v1 
+kind: Service 
+metadata: 
+  name: nginx-service
+  labels:
+    foo: service-label # just service label, NO slector label - SL is used for looking what pods should be exposed ( pods with which label)
+spec: 
+  type: ClusterIP
+  selector: 
+    baz: pod-label # expose pods with this tags
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

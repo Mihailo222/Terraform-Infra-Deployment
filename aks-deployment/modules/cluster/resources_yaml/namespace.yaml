@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: example-namespace
+
+# ns is a logical grouping of resources
+# there are 4 initial nss: default, kube-system, kube-node-lease, kube-public
+# by default, ns does not act as a network/security boundary
+

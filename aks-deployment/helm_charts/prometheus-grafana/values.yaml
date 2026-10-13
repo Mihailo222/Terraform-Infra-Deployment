@@ -1,0 +1,16 @@
+# custom helm chart values
+
+customIngressResource:
+  enabled: true 
+  ingressClassName: nginx 
+  host: my-grafana.ui 
+  grafanaPath: "/grafana"
+  
+  service:
+    name: prometheus-grafana-release
+    port: 80 
+    servicenamespace: prometheus-grafana
+
+
+# helm dependency build prometheus-grafana
+# helm install prometheus-grafana-release prometheus-grafana --namespace prometheus-grafana --create-namespace

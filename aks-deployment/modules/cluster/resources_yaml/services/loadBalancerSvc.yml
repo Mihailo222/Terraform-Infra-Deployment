@@ -1,0 +1,23 @@
+apiVersion: v1 
+kind: Service 
+metadata: 
+  name: nginx-service-loadbalancer
+  labels:
+    foo: service-label # just service label, NO slector label - SL is used for looking what pods should be exposed ( pods with which label)
+spec: 
+  type: LoadBalancer
+  selector: 
+    baz: pod-label # expose pods with this tags
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+
+# access this nginx from your workstation!!!
+# kubectl get service -> see ports  amd internal and external ip addresses !!!
+# create a pod in some ns and curl svcs from it
+# kubectl run curl-pod -it --rm --image=curlimages/curl --command sh
+# curl <external-ip-of-loadbalancer-service_OR_svc-name>:< port>
+# curl <internal-ip-of-loadbalancer-service_OR_svc-name>:< port>
+# curl form another namespace:
+# curl <svc-name>.<namespace>.svc.cluster.local:<port>

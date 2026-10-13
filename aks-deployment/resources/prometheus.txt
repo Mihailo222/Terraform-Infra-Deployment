@@ -1,0 +1,24 @@
+# Prometheus 
+
+- prometheus server 
+
+- on po pull principu na svaki vremenski period skuplja podatke od raznih aplikacija, db instance, bare metala, k8s custera ...
+- njih zovemo targets 
+- on nakon sto prikupi metrics njih skladisti u tzv time series database ( deo p. servera ). Ove metrike se skladiste na disku (HDD/SSD) po defaultu se tu zadrzavaju 15 dana. Ovo se lako moze promeniti, ali mi mozemo i konfigurisati da nam storuje na remote storage-u (npr s3 bucket). 
+- ovi podaci se nakon toga preusmeravaju i preko HTTP API-ja predstavljaju u vidu nekih dostupnih metrika 
+
+- takodje, mozemo i da napravimo da se custom metrike izvlace iz custom aplikacije ( ne cpu ili memorija koju npr iskoriscava neka masina, node ili server )
+- za to je potrevan custom code u nasoj aplikaciji koji bi ove metrike exposovao. Za ovo su nam potrebne custom prometheus libraries ( on ih ima za go, javu, python ...)
+- za neke aplikacije koje ne mogu da exportuju podatke tako lako se koristi EXPORTER koji podatke iz aplikacijskog formata prebacuje/exportuje u prometheus format podatke
+- Nakon ovoga, exporter provajduje metrike preko datog API-ja koje mogu da se koriste. 
+
+- Iako je prometheus pull-based sistem, za aplikacije koje kratko traju nor cron job ili lambda fja koja se brzo okine, moze da se desi da prometheus ne uspe da je okaci, te oni moraju svoje metrike da pushuju na pushgateway od kog dalje prometheus server pull-uje metrike. 
+
+- Prometheus dolazi sa UI-jem koji je exposed na portu 1990 po defaultu, to je njegova UI reprezentacije. Takodje, za data visualization se moze koristiti i grafana. Prometheus preko PromQL-a filtrira podatke koji se publishuju na taj ui. 
+- P.Server pushuje push alerts ako zelimo alerte !!!
+
+
+Deploying Prometheus on K8s cluster using Helm and Prometheus
+-------------------------------------------------------------
+
+> helm install prometheus stable/prometheus-operator

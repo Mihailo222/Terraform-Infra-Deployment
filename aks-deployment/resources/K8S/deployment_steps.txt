@@ -1,0 +1,44 @@
+# connect to AKS cluster and create a kubeconfig file
+
+> az login
+> az aks get-credentials --resource-group aks-test-rg --name exercises-aks #kubeconfig created
+> kubectl get ns
+
+# go where latest published git code is:
+
+# deploy nginx ingress controller 
+
+# helm dependency build nginx_ingress_controller
+# helm install helm-ingress-nginx-custom-release nginx_ingress_controller --namespace ingress-nginx --create-namespace
+
+# deploy argoCD 
+
+> helm dependency build argo_cd
+> helm install argo-cd-release argo_cd --namespace argocd --create-namespace
+
+#> helm uninstall argo-cd-release -n argocd # you need to specify ns name !!!
+# access ui on chrome only because mac browser can't procede with http to argoCD ui ( without certificate )
+
+
+# add argoCD to local /etc/hosts file: 
+135.237.8.195 argocd.mydomain.local
+
+- problem with ingress - it returns me after login ...
+
+# deploy ngninx argoCD application 
+ kubectl apply -f nginx.yaml 
+
+# deploy prometheus-grafana stack application 
+kubectl apply -f prom-grafana.yaml 
+
+
+# add grafana ui to /etc/hosts:
+135.237.8.195 prometheus.mydomain.local
+# wait for syncs 
+
+# we edited svc name for prom-grafana becvause they dont get helm chart based names rn. Also, 
+# Also it worked for my just to host multiple subdomains on same LB IP address, no way to host like x.com and y.ui on same LB idk why
+
+
+
+# argoCD sync waves

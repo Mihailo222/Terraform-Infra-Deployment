@@ -1,0 +1,45 @@
+---
+- name: Manage windows servers.
+  hosts: win
+  vars_files:
+    - variables.yaml
+  tasks:
+  
+    - name: Check if git is present.
+      win_shell: |
+        if(Get-Command git -ErrorAction SilentlyContinue) {
+          Write-Output "Git is installed."
+          } else {
+            Write-Output "Git is not installed."
+          }
+      register: git_check
+      
+    - name: Pull latest version of git installer.
+      ansible.windows.win_get_url:
+        url: https://github.com/git-for-windows/git/releases/download/v2.50.1.windows.1/Git-2.50.1-64-bit.exe
+        dest: "C:\\Users\\azureuser\\Downloads\\Git-2.50.1-64-bit.exe"
+      when: git_check.stdout_lines[0] == "Git is not installed."
+      
+    - name: Install git binary.
+      ansible.windows.win_package:
+        state: present
+        path: "C:\\Users\\azureuser\\Downloads\\Git-2.50.1-64-bit.exe"
+        arguments: /SILENT /VERYSILENT /NORESTART
+      when: git_check.stdout_lines[0] == "Git is not installed."
+
+    - name: Add Git to PATH.
+      ansible.windows.win_environment:
+        name: Path
+        value: 'C:\Program Files\Git\cmd'
+        state: present
+        level: user # user lvl env variable is available only after the user logs out and back in (ans docx)
+      when: git_check.stdout_lines[0] == "Git is not installed."
+
+    - name: Check git version.
+      win_shell: |
+        Get-Command git 
+      register: git_version
+
+    - name: Debug git version.
+      debug:
+        var: git_version

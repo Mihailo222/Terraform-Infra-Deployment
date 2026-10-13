@@ -1,0 +1,9 @@
+# show sp details
+> az ad sp show --id <sp_id>
+
+#add sp a contributor role on subscriptions
+
+>  az role assignment create --assignee <appId> --role Owner --scope /subscriptions/d625e1d8-8605-4e47-a941-00e7ddb795a2
+
+# Contributor role -> full access to manage all resources, but cant assign RBAC
+# Owner role -> grants full access tomanage all resources and assign roles RBAC

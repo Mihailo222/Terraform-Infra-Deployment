@@ -1,0 +1,110 @@
+- Three ways:
+  -----------
+
+1. local accounts with k8s RBAC
+2. entra ID with k8s RBAC
+3. entra ID with azure RBAC
+
+- 2 levles of access on AKS Cluster:
+1. access to do the cluster level operations ( ctrl plane operations )
+2. access to the API operations ( data plane operations )
+
+1. Cluster lvl operations:
+
+- ovo su operacije na AKS resursu, odradjene su na strani Azure ctrl plane-a/Azure portala
+- primeri: kreiranje ili izmene na node pool-ovima, integracije AKS-a sa VNet-om, upgrade k8s verzije ...
+- za ovo se koriste tvoji regularni Azure RBAC ( najcesci: contributor, owner, k8s service contributor )
+
+
+2. API operations:
+
+- upravljanje resursima unutar clustera, kubectl komande
+- ove operacije se ne mogu odraditi preko Azure RBAC roles ( cak ni sa Owner rolom ) i one se mogu odraditi na osnovu tima auth/authz metode koju korisris nad AKS clusterinformations
+- on na primeru ne moze da vidi podovoe iako je Owner
+
+Bez obzira na auth/authz koju imas, ti ne mozes da vrsis operacije nad k8s clusterom bez kubeconfig fajla koji se kreira u tvom direktorijumu. Ovaj korak je autentifikacija sa k8s clusterom
+i vrsi se preko az aks get-credentials --resource-group <RG>  --name <CLUSTER_NAME>. Ovaj fajl se kreira u home direktorijumu usera .kube/config. 
+
+- Da bi uopste mogao da runnujes ovu komandu, potrebna ti je neka od sledecih Azure rola ( nakon sto se preko az cli-ja autentifikujes sa azure-om):
+Owner, Contributor, Azure k8s service cluster user, Azure k8s service Contributor, Azure k8s service rbac admin, Azure k8s service rbac cluster admin, service group administrator ILI service group contributor.
+
+
+LOCAL ACCOUNTS WITH K8S RBAC
+----------------------------
+
+
+- least favorite, ima security risk
+- cluster lvl opracije se obavljaju preko Azure rola kao sto smo i rekli
+- there is no much control over api operations
+
+- Local account with Kubernetes RBAC is certificate based identity, the kubeconfig file has a cetificate in it.
+After getting this file, autentifikacija je gotova i ne postoji vise mnogo stvari koje mozes kontrolisati. Znaci, 
+svako ko je dobio Azure rolu napomenutu gore i ko moze da performuje az aks get-credentials komandu ce dobiti full admin
+access nad klasterom i ovo se ne moze menjati jer postoje neki role bindings koji se kreiraju. 
+
+- Ovaj config fajl je kritican vulnerability, jer svako ko ga ima moze imati admin access nad klasterom. On moze 
+biti i iz drugog tenanta, samo ako ima ovaj fajl u direktorijumu .kube/ u home-u, on moze da vrsi sve api operacije. 
+Ne mora ni da bude azure user, jer mu ne treba az aks get-credentials komanda jer je poenta te komande fajl koji user 
+moze samo da prekopira. 
+
+
+ENTRA ID WITH K8S RBAC
+----------------------
+
+
+- auth done with entra id and azure rbac ( az aks get-credentials ... )
+- authz done with k8s rbac ( for k8s api operations )
+
+- assign entra user with following role: kubernetes service cluster user role. That way you are in the cluster but dont have any permissions. You are authenticated.
+- for authz, you need to apply k8s role for entra user separately
+- here, not even an owner can run k8s api operations if it's not assigned with proper k8s rbac
+
+- User can not authenticate if it doesn't have any of the azure roles mentioned before. 
+- After az aks get-credentials, the kube config file would appear. 
+
+- If we take a look at kubeconfig file, we will see that token based authentication is used. 
+> kubectl config view --minify 
+
+- Kada se kreira k8s cluster sa entra id auth i k8s rbac authz-om, imamo situaciju da nam nudi da kreira i grupu za koju
+vazi da je to admin grupa koja se kreira tokom kreiranja clustera. To znaci da ce svi useri iz te grupe imati admin prava 
+nad clusterom bez obzira na k8s rbac.
+
+- Kada bih sada nnekom test useru koji ima samo role za authentication zatrazio da odradi kubectl get pods, on iako je owner,
+on ne bi mogao da vrsi ovu operaciju. 
+
+- Let's understand k8s rbac role
+
+- to je samo resurs tipa RoleBinding koji se deploy-uje u k8s cluster kao yaml
+- Primer role za watch resursa:
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: view-pods-binding
+  namespace: default 
+subjects:
+- kind: User
+  name: anandtest2@anandazaugustoutlook.onmicrosoft.com
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: view  # Grants read-only access to most resources
+  apiGroup: rbac.authorization.k8s.io
+
+- ovaj resurs mogu deploy-ovati samo azure accounti sa rolom ClusterAdmin, a to su oni useri iz one admin grupe. 
+- dodaj ovom useru tu rolu
+- vidi da li moze kubectl get pods 
+- obrisi ovom useru tu rolu, prekopiraj admin cube config fajl njemu i vidi kako on ne moze da pristupi vidjanju resursa
+
+- Demo: kreiraj cluster sa Entra ID and k8s rbac, kreiraj novog test usera preko entre, dodaj mu rolu za autentifikaciju na k8s cluster, stavi sebe tamo u admin grupu, preko svog usera dodaj test useru access da vidi podove, vidi da li user vidi podove
+
+
+ENTRA ID WITH AZURE RBAC
+------------------------
+
+- za autentifikaciju ide ona rola i az aks get-credentials ... ( npr rola Azure Kubernetes service cluster user role )
+- role za authz: Azure k8s Service rbac admin Azure k8s serice rbac cluste admin, azure k8s service rbac reader, azure k8s rbac writter
+- u ovoj authz metodi nam ne trebaju k8s rbac
+- cak i da user ima Owner rolu, nece moci da gleda resource
+- sa entra id with azure rbac mi i dalje mozemo da asajnujemo userima k8s rbac iako mozda nije potrebno. 
+- Azure rbac za kreiranje k8s rolebindings-a je: Azure k8s service RBAC Admin ili Azure Kubernetes service rbac cluster admin, tako da samo user sa nekom od ovih rola pored role za auth moze da kreira nove rolebindings

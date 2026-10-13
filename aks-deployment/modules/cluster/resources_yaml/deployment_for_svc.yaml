@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-minimal
+  labels: 
+    foo: deployment-label # a ovo je samo deployment label, samo selector label je bitan za podove koje gleda selector da bi dohvatio deployment 
+  annotations:
+    bar: deployment-annotation
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      baz: pod-label #selector trazi podove sa ovom labelom i baca ih u deployment
+  template:
+    metadata:
+      labels:
+        baz: pod-label
+      annotations:
+        bing: pod-annotation
+    spec:
+      containers:
+       - name: nginx 
+         image: nginx:1.26.0

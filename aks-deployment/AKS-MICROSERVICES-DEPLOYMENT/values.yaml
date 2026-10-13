@@ -1,0 +1,93 @@
+replicaCount: 1
+
+image:
+  repository: xsp-docker-dev.docker.fis.dev/fis.cas6.xsp.analytics/development
+  pullPolicy: IfNotPresent
+  tag: "0.1.0-development-01368"
+
+imagePullSecrets:
+  - name: cas6imagepull
+nameOverride: "analytics" 
+fullNameOverride: "analytics"
+
+serviceAccount: 
+  create: true 
+  annotations: {}
+  name: "" 
+
+podAnnotations: {} 
+podSecurityContext: {}
+securityContext: {} 
+
+service: 
+  type: ClusterIP 
+  port: 80 
+
+ingress: 
+  enabled: true 
+  className: {}
+  annotations: {}
+
+  hosts:
+    - host: chart-example.local 
+      paths: 
+        - path: /
+          pathType: ImplementationSpecific
+  tls: [] 
+
+terminationGracePeriodSeconds: 120
+preStopSleepSeconds: 20 
+
+resources: 
+  requests: 
+    cpu: 4 
+
+autoscaling: 
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+
+cas6scaledobject:
+  enabled: true
+  poolingInterval: 30
+  cooldownPeriod: 180
+  idleReplicaCount: 0
+  minReplicaCount: 1
+  maxReplicaCount: 125
+  restoreToOriginalReplicaCount: true 
+  triggers:
+    metadata: 
+      scalerAddress: "fis-cas6-scaler.cas6.svc.cluster.local:6090"
+      externalScalerConnectionString: "blabla"
+      concurrency: "4" 
+      tenantName: inssdldev 
+      minReplicaCount: 1
+      maxReplicaCount: 125
+      metricsAveragingIntervalSeconds: 30 
+      isActiveResponseInterval: 120 
+      useAveraging: false 
+      useStepping: false 
+      stepSize: 1
+      scaleFactor: 50 
+      samplingCount: 3
+      percentTolerance: 10 
+      enableScaleToZero: false
+      enableTolerance: false 
+      toleranceDuration: 180 
+
+applicationEnvvars: 
+  - name: connstring 
+    value: 
+  - name: tenant 
+    value: 
+  - name: XSPConcurrency 
+    value: 
+
+otherEnvs: 
+
+nodeSelector: {}
+
+tolerations: [] 
+
+affinity: {} 

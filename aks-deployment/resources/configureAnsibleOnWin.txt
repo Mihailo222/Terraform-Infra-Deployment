@@ -1,0 +1,22 @@
+#run pshell as administrator
+----------------------------
+
+#configure tls default version from tls 1 to tls 1.2
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+#configure remoting for ansible script
+$url = “https://github.com/ansible/ansible-documentation/blob/devel/examples/scripts/ConfigureRemotingForAnsible.ps1"
+$file = “$env:temp\ConfigureRemotingForAnsible.ps1”
+(New-Object -TypeName System.Net.WebClient).DownloadFile($url, $file)
+#method pulls html, not url's content
+powershell.exe -ExecutionPolicy ByPass -File $file
+
+# set up WinRM listener
+winrm enumerate winrm/config/Listener
+
+#set macOS env on ansible installed workstationß
+export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+
+# each time you edit a module -> terraform init --upgrade
+# dont use private dns servers in azure vnet config, bcs you cant be able to nslookup google.com in case u have no real dns servers
+# change your ip address in nsg if you change your public ip address

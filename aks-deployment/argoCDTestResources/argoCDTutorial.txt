@@ -1,0 +1,59 @@
+ArgoCD tutorial
+---------------
+
+- ok, github repo is a single source of truth and we can configure it to redeploy stuff from the repo if there are code changes on that repo 
+
+Prerequisits:
+
+- how to setup github ssh authentication: 
+
+1. check if you already have some ssh keys in your home directory: 
+> ls -la ~/.ssh/
+
+2. create your new ssh key if you don't have one 
+> ssh-keygen -t ed25519 -C "your-email@example.com" # type of key ed25519 
+> ssh-keygen -t rsa -b 4096 -C "your-email@example.com" # type of key is rsa 
+> ssh-keygen -t rsa -b 8192 -C "your-email@example.com" # type of key is extra secured rsa 
+
+3. Grab your public key: 
+> cat ~/.ssh/id_ed25519.pub 
+
+4. drop that public key to your hosting repo. Go to GitHub -> Settings -> SSH and GPG keys 
+
+5. Authenticate:
+> ssh -T git@github.com
+
+6. Clone with ssh url:
+> git clone <ssh url of repo> 
+
+Demo:
+
+1. deploy ingress and argoCD to k8s cluster and access ui
+2. add ingress hostname to your /etc/hosts 
+3. login to ui.  
+
+
+
+Ok, this is 1st argoCD object: 
+
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata: 
+  name: grade-submission
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Mihailo222/ArgoCD.git
+    targetRevision: HEAD
+    path: argo_deployments
+  destination: 
+    server: https://kubernetes.default.svc
+    namespace: grade-demo
+  syncPolicy:
+    automated: #znaci da argoCD gleda na pormene sa github-a i primenjuje ih pre nego sto kliknemo sync, tj ne moras da kliknes sync 
+      prune: true # govori da obrise k8s resurse koji vise ne postoje na gitu 
+      selfHeal: true # znaci da ako neko napravi izmene unutar clustera, npr poveca br replika sa 3 na 10 preko komande, argoCD ce automatski da vrati br replika na ono sto pise u githubu, tj na 3 
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,61 @@
+---
+- name: Manage windows servers.
+  hosts: win
+  tasks:
+    - name: Check if winget is installed. #if the error occurs, I don't want the playbook to stop.
+      win_shell: |
+        if(Get-Command winget -ErrorAction SilentlyContinue) { 
+          Write-Output "Winget is installed."
+          } else {
+            Write-Output "Winget is not installed."
+          }
+      register: winget_check
+
+    - name: Debug winget check.
+      debug:
+        var: winget_check
+#        Repair-WinGetPackageManager -AllUsers
+
+    - name: Install winget if not present. #smtimes it installs it even if it is present, but it is not a problem??
+      win_shell: |
+        Install-PackageProvider -Name NuGet -Force 
+        Install-Module -Name Microsoft.WinGet.Client -Force -Repository PSGallery
+        Repair-WinGetPackageManager -AllUsers -Latest
+
+      when: winget_check.stdout_lines[0] == "Winget is not installed."
+
+    - name: Check if git is installed.
+      win_shell: |
+        if(Get-Command git -ErrorAction SilentlyContinue) {
+          Write-Output "Git is installed."
+          } else {
+            Write-Output "Git is not installed."
+          }
+      register: git_check
+
+    - name: Install git if not present.
+      win_shell: |
+        winget install --id Git.Git -e --source winget
+      when: git_check.stdout_lines[0] == "Git is not installed."
+
+    - name: Add Git to PATH.  #this is user level env variable
+      win_environment:
+        name: Path
+        value: 'C:\Program Files\Git\cmd'
+        state: present
+        level: user
+   #   when: git_check.stdout_lines[0] == "Git is not installed."
+    - name: Test path variable.
+      win_shell: |
+        echo $env:Path; git -v
+      register: path_check
+
+    - name: Check if ansible is installed.
+      debug:
+        var: path_check
+
+    - name: Git checkout
+      ansible.windows.win_package:
+        state: present
+        path: C:\Users\azureuser\Downloads\Git-2.50.1-64-bit.exe
+        arguments: /SILENT /VERYSILENT /NORESTART

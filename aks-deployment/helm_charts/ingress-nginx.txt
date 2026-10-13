@@ -1,0 +1,62 @@
+Nginx ingress controller 
+
+- after deploying it to the k8s cluster, it listens to ingress objects across all nss in k8s cluster and updated ingress.conf file 
+
+- vidi domain i path routing na ingresima:
+1) https://public.service-a.com/ --> ingress --> k8s service -> http://service-a/
+2) https://public.service-b.com/ --> ingress --> k8s service -> http://service-b/
+
+
+Here's the example of how ingress resource is going to look like ( domain based routing ):
+
+apiVersion: networking.k8s.io/v1 
+kind: Ingress 
+metadata: 
+  name: service-a
+spec: 
+  ingressClassName: nginx
+  rules: 
+  - host: public.service-a.com # hostname, mozes ko ja da na istu IP adresu stavis u/etc/hosts file i 2 razlicita domena i na osnovu domainname-a ce se pojaviti odredjeni k8s service
+    http:
+      paths:
+      - path: /
+        pathType: Prefix 
+        backend:
+          service:
+            name: service-a
+            port:
+              number: 80
+
+
+Here's the example of how ingress resource is going to look like ( path based routing ):
+
+https://public-my-service.com/path-a -> ingress -> k8s service -> https://service-a/path-a
+https://public-my-service.com/path-b -> ingress -> k8s service -> https://service-a/path-b
+
+- ovako public path /path-a ce da pogodi nasu aplikaciju na /path-a
+
+apiVersion: networking.k8s.io/v1 
+kind: Ingress 
+metadata: 
+  name: service-a
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: / -> ovo znaci rewriteuj url koji service vidi na /, znaci na service-a na public url-u public.myservices.com hostuj path / sa service-a service-a
+spec: 
+  ingressClassName: nginx
+  rules: 
+  - host: public.myservices.com 
+    http:
+      paths:
+      - path: /path-a #
+        pathType: Prefix 
+        backend:
+          service:
+            name: service-a
+            port:
+              number: 80
+
+URL rewrite znaci hostuj /, tj sta god da se stavi iza public.myservices.com/path-b/fdbfdbdfbd -> on ce da hostuje kontent sa /
+> kubectl -n ingress-nginx logs -l app.kubernetes.io/instance=ingress-nginx 
+
+Nekada apliakcije imaju drugaciji appRoot i ne hostuju svoj kontent na / ( npr http://localhost/home ). Mozemo da dodamo anotaciju
+nginx.ingress.kubernetes.io/app-root: /home. Ovo znaci kako ce controller biti svestan da sav traffic koji se matchuje sa path-a trebalo bi da ide na /home service-a. 

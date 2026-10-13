@@ -1,0 +1,31 @@
+# login first
+az login
+
+# list all service principals (may paginate)
+az ad sp list --all -o table
+
+# list with selected fields
+az ad sp list --all --query "[].{appId:appId,displayName:displayName,objectId:objectId}" -o table
+
+# find by display name
+az ad sp list --filter "displayName eq 'TerraformSP'" -o json
+
+# show one by appId or objectId
+az ad sp show --id <appId-or-objectId> -o json
+
+# show role assignments for a service principal
+az role assignment list --assignee <appId-or-objectId> -o table
+
+# find the service principal and show ids
+az login
+az ad sp list --filter "displayName eq 'TerraformSP'" --query "[].{appId:appId,displayName:displayName,objectId:objectId}" -o table
+
+# get the appId (cli id) into a variable
+APPID=$(az ad sp list --filter "displayName eq 'TerraformSP'" --query '[0].appId' -o tsv)
+echo "appId: $APPID"
+
+# show full SP info
+az ad sp show --id "$APPID" -o json
+
+# create a new client secret (will print the secret once)
+az ad app credential reset --id "$APPID" --append --years 2 --query password -o tsv

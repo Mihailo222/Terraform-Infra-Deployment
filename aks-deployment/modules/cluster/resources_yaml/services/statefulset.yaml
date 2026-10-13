@@ -1,0 +1,83 @@
+# statefulsets
+
+# similar to deployments, but pods in sts are going to have a sticky identity in the end of the name 
+# ( e.g. pod-0, pod-1, ...) 
+# meaning -> the order of the pods bringing up and down is important !
+# we have statefull and stateless applications, sts are used for statefull apps ( e.g. databases ) 
+# each pod in sts is going to mount a separate volume !
+# rollout behaviour is ordered in sts !
+# scaling up and down is also ordered in sts !
+# this enables configuring workloads that require state mngmnt ( e.g. primary and read replica for db)
+
+# if we use deployments -> each pod replica is going to share the same volume 
+# if we use sts -> each pod replica is going to have its own volume ( e.g. pod-0 has vol-0, pod-1 has vol-1, ...)
+
+# if you have a sts with lt's say 3 replicas, you can specify a 3 init containers and then inject a configuraions or files from that container with init container based on the pod's sticky bit
+
+# headless service is used to expose the pods in sts, but not to load balance them ( e.g. for dbs, you want to connect to a specific pod, not to any pod replica )
+# if you create a headless svc, you create if for pods in sts, it doesnt create a load balancer !!!
+
+#1st we need to create a headless svc for sts 
+# it sets up dns to route traffic to the pods in sts, but it doesnt load balance them ( e.g. for dbs, you want to connect to a specific pod, not to any pod replica )
+# why it creates headless svc for sts ? -> because we want to connect to a specific pod in sts, not to any pod replica ( e.g. for dbs, you want to connect to a specific pod, not to any pod replica )
+
+apiVersion: v1 
+kind: Service 
+metadata:
+  name: nginxs 
+spec:
+  type: ClusterIP
+  clusterIP: None # this is what makes it headless
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+
+# sts
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx-with-init-container
+spec:
+  serviceName: "nginxs" # this is the headless svc we created above
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      initContainers:
+      - name: populate-default-html
+        image: busybox
+        command:
+        - sh
+        - -c
+        - |
+          set -ex 
+          [[ $HOSTNAME =~ -([0-9]+)$ ]] || exit 1
+          ordinal=${BASH_REMATCH[1]}
+          echo "Hello from pod $HOSTNAME (ordinal $ordinal)" > /usr/share/nginx/html/index.html
+        volumeMounts:
+          - name: data
+            mountPath: /usr/share/nginx/html
+      containers:
+      - name: nginx
+        image: nginx
+      volumesMounts:
+      - name: data
+        mountPath: /usr/share/nginx/html
+    volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: "default"
+        resources:
+          requests:
+            storage: 100Mi 

@@ -1,0 +1,120 @@
+# How to upgrade k8s cluster created with kubeadm
+
+# version explanations:
+# kubeadm version: 1.36.2
+# major = 1, minor = 36, patch = 2
+
+# How to upgrade from 1.35.x to 1.36.x 
+# How to upgrade from 1.36.x to 1.36.y (y > x) - patch upgrade
+
+# Upgrade steps: 
+# 1. upgrade a primary control plane node 
+# 2. upgrade other control plane nodes (if any)
+# 3. upgrade worker nodes (if any)
+
+# Before we begin ( prerequisits ):
+
+#1. cordon nodes (make them unschedulable) - 1to2h, the downtom to app is not going to be here, but node is not going to be schedulable
+#2. release notes (1.30 -> 1.31) - see what are the new features and go through release notes
+#3. cluster changes are irreversable ( you can not cancel upgrad or return to a prev state)
+#4. lower environments first !
+#5. nodes and ctrl plane should be on the same version before an upgrade. Basically, if ctrl plane is on 1.30 and nodes are on 1.29, if you want to upgrade to 1.31, firs you need to upgrade nodes to 1.30 !!!
+#6. k8s autoscaler also should match the version of k8s ctrl plane
+#7. if subnet you provided is for k8s cluster, you need to have at leas 5 free IP addresses
+#8. kubelet should match version of ctrl plane ( same as k8s nodes )
+
+
+# The process of upgrading:
+
+#1. the ctrl plane on AKS is managed ( it even doesn't mean that the upgrades are automatically triggered - NO) - why it is called self-managed (HA done by Azure, disaster recovery, security, API scaling)
+#2. upgrade node group OR node OR fargate
+#3. upgrade addons
+
+# upgrade k8s cluster:
+
+#1. upgrade ctrl plane:  eksctl upgrade cluster --name <cluster_name> --region <region> --version <new_version> 
+# can we do this with kubeadm ? - yes, but it is not recommended, because it is not managed by Azure. You can do this only if you have a self-managed cluster (not AKS).
+#2. upgrade node group's ami: rolling update - update strategy with zero downtime
+#3. upgrade addons (kube-proxy, coredns, metrics-server, etc) - this is done automatically by Azure when you upgrade the cluster. You can also do this manually if you want to upgrade to a specific version of an addon.
+
+# Upgrade AKS:
+( https://learn.microsoft.com/en-us/azure/aks/upgrade-aks-control-plane?tabs=azure-cli )
+
+# see az version, aks versionmđ, powershell version, you need to have RBAC role write on agent pools
+
+
+# See how the architecture of k8s cluster looks like:
+1.  control plane: cloud controller manager, etcd, kube-api-server, scheduler, controller manager
+2.  nodes: kubelet, kube-proxy, pods ( with cri )
+
+# k8s cluster upgrade types:
+
+1. control plane only: scope - api server, etcd, controller manager, scheduler; use case - test new k8s apis before upgrading workloads 
+2. full cluster: scope - ctrl plane and all node pools; use case - standard upgrade to keep cluster up to date
+3. node pool only: scope - specific node pools; use case - staged rollout after ctrl plane upgrade  
+
+# you can't skip k8s minor versions -> e.g. upgrade from 1.28.x to 1.30.x must be done like thiS: 1.28.X -> 1.29.X; 1.29.X -> 1.30.x
+# ctrl plane node can be up to 3 minor versions ahead of node pools. E.g. if my ctrl plane is at 1.35.x, my node pools can be at 1.32.x, 1.33.x, 1.34.x, 1.35.x
+
+# Check for available AKS upgrades
+az aks get-upgrades --resource-group <resource-group-name> --name <cluster-name> --output table
+
+# UPGRADE AKS CTRL PLANE ONLY 
+az aks upgrade --resource-group <resource-group-name> --name <cluster-name> --kubernetes-version 1.29.4 --control-plane-only
+
+# confirm aks version upgrade was successfyl 
+az aks show --resource-group <resource-group-name> --name <cluster-name> --output table
+
+# verify the nodepool versions
+az aks nodepool list --resource-group <resource-group-name> --cluster-name <cluster-name> --query "[].{Name:name,Version:orchestratorVersion}" --output table
+
+# UPGRADE FULL AKS CLUSTER
+az aks nodepool list --resource-group <resource-group-name> --cluster-name <cluster-name> --query "[].{Name:name,Version:orchestratorVersion}" --output table
+
+# 
+
+
+# how to safely drain a node.......
+
+# Prerequirements:
+
+1. we do not need application to be HA during the node drain
+2. or we have read about PodDistruptionBudgete concept and have configured PodDistruptionBudgete for application needing them 
+
+PodDistruptionBudgets
+---------------------
+- to ensure that our workloads remain available during maintenance, we can configure this PodDistruptionBudgete
+- it is recomended to set AlwaysAllow Unhealthy Pod Eviction Policy to our PodDistruptionBudgete to support eviction of misbehaving apps during node drain. The default behaviour is to wait for the application pods to become healthy before the drain can procede. 
+
+
+
+- Use kubectl drain to remove a node from service 
+--------------------------------------------------
+
+- use kubectl drain to safely evict all of our pods from a node before we perform maintenance on the node ( e.g. kernel upgrade, hardware maintenance ...)
+- by default kubectl ignores certain system pods on the node that can not be killed.
+- When kubectl drain returns successfully, that indicates that all of the pods (except the ones excluded as described in the previous paragraph) have been safely evicted (respecting the desired graceful termination period, and respecting the PodDisruptionBudget you have defined). It is then safe to bring down the node by powering down its physical machine or, if running on a cloud platform, deleting its virtual machine.
+
+- identify the name of the node we wish to drain. We can list all of the nodes in our cluster: 
+> kubectl get nodes
+
+- tell k8s to drain the node
+> kubectl drain --ignore-daemonsets <node name>
+- daemonset controled pods can not be drained, the daemonset controller on a ctrl plane is here to schedule pods. The daemonset controller also creates pods that ignore unschedulable taints which allows the new pods to launch onto a node that we are draining.  
+- The DaemonSet controller also creates Pods that ignore unschedulable taints, which allows the new Pods to launch onto a node that you are draining.
+- Once it returns (without giving an error), you can power down the node (or equivalently, if on a cloud platform, delete the virtual machine backing the node). If you leave the node in the cluster during the maintenance operation, you need to run kubectl uncordon <node name> -> command makes node schedulable ansible_winrm_kerberos_delegation
+- The kubectl drain command should only be issued to a single node at a time. However, you can run multiple kubectl drain commands for different nodes in parallel, in different terminals or in the background. Multiple drain commands running concurrently will still respect the PodDisruptionBudget you specify.
+- For example, if you have a StatefulSet with three replicas and have set a PodDisruptionBudget for that set specifying minAvailable: 2, kubectl drain only evicts a pod from the StatefulSet if all three replicas pods are healthy; if then you issue multiple drain commands in parallel, Kubernetes respects the PodDisruptionBudget and ensures that only 1 (calculated as replicas - minAvailable) Pod is unavailable at any given time. Any drains that would cause the number of healthy replicas to fall below the specified budget are blocked.
+
+
+- Distruptions:
+  ------------
+
+- types of distruptions that can happen to a pod - guide for all HA applications 
+- pods do not disappear until someone ( a person or a controller ) destroys them, or there is an unavoidable hardware or system software error. 
+- Volontary and involuntary disruptions 
+
+- Cluster administrator actions include:
+1. draining a node for repair or upgrade.
+2. draining a node from a cluster to scale the cluster down ( autoscaling )
+3. removing a pod from a node to permit something else to fit on that node. 
