@@ -1,23 +1,10 @@
 ################################################ variables used by main.tf ################################################
-variable "subscription_id" {
-}
-
-variable "serviceprincipal_id" {
-}
-
-variable "serviceprincipal_key" {
-}
-
-variable "tenant_id" {
-}
 
 #Module's vars
 variable "location" {
   default = "eastus"
 }
 
-variable "ssh_key" {
-}
 
 variable "kubernetes_version" {
   default = "1.30.1"
