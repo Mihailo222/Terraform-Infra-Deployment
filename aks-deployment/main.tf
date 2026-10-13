@@ -1,28 +1,22 @@
 terraform {
-  required_providers {
-  
-    azurerm = {
-      source = "hashicorp/azurerm"
-      version = "4.37.0"
-    }
-
-    azuread = {
-      source  = "hashicorp/azuread"
-      version = "2.47.0"
-    }
-  }
+  backend "azurerm" {
+    resource_group_name  = "terraform-rg"
+    storage_account_name = "tfsacc"
+    container_name       = "terraform-tfstate-container"
+    key                  = "terraform.tfstate"
 }
-
+}
+ 
 provider "azurerm" {
-  # Configuration options
-  subscription_id = var.subscription_id
-  client_id = var.serviceprincipal_id
-  client_secret = var.serviceprincipal_key
-  tenant_id = var.tenant_id
-
-    features {}
-
+  # The "feature" block is required for AzureRM provider > 2.x.
+  version = ">= 3.50.0"
+  features {}
 }
+ 
+data "azurerm_client_config" "current" {}
+
+
+
 
 ############################################# calling resource group module #####################################################
 
