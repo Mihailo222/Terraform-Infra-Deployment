@@ -1,0 +1,76 @@
+name: Terraform Destroy
+
+# only manual starts
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-destroy:
+    name: Terraform Destroy
+    runs-on: ubuntu-latest
+
+    # GitHub Environment
+    # Ovde možeš podesiti required reviewers / approval
+    environment: production
+    env:
+      # Azure authentication
+      ARM_CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Terraform variables
+      TF_VAR_vm1_ssh_public_key: ${{ secrets.VM_SSH_PUBLIC_KEY }}
+      TF_VAR_vm2_ssh_public_key: ${{ secrets.VM_SSH_PUBLIC_KEY }}
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ github.workspace }}/aks-deployment
+
+    steps:
+      # --------------------------------------------------
+      # Checkout
+      # --------------------------------------------------
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # --------------------------------------------------
+      # Setup Terraform
+      # --------------------------------------------------
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # --------------------------------------------------
+      # Terraform Init
+      # --------------------------------------------------
+
+      - name: Terraform Init
+        run: terraform init
+
+      # --------------------------------------------------
+      # Validate
+      # --------------------------------------------------
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      # --------------------------------------------------
+      # Create Destroy Plan
+      # --------------------------------------------------
+
+      - name: Terraform Destroy Plan
+        run: terraform plan -destroy -input=false -out=destroy.tfplan
+
+      # --------------------------------------------------
+      # Destroy exactly what was planned
+      # --------------------------------------------------
+
+      - name: Terraform Destroy
+        run: terraform apply -input=false -auto-approve destroy.tfplan
