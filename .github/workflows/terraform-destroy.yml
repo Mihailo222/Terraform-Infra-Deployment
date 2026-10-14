@@ -61,16 +61,23 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
+
+      - name: Terraform destroy
+        run: terraform destroy -auto-approve
+        
+
       # --------------------------------------------------
       # Create Destroy Plan
       # --------------------------------------------------
 
-      - name: Terraform Destroy Plan
-        run: terraform plan -destroy -input=false -out=destroy.tfplan
+  #    - name: Terraform Destroy Plan
+  #      run: terraform plan -destroy -input=false -out=destroy.tfplan
 
       # --------------------------------------------------
       # Destroy exactly what was planned
       # --------------------------------------------------
 
-      - name: Terraform Destroy
-        run: terraform apply -input=false -auto-approve destroy.tfplan
+ #     - name: Terraform Destroy
+ #       run: terraform apply -input=false -auto-approve destroy.tfplan
+
+
