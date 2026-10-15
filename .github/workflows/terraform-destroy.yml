@@ -24,8 +24,8 @@ jobs:
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       # Terraform variables
-      TF_VAR_vm1_ssh_public_key: ${{ secrets.VM_SSH_PUBLIC_KEY }}
-      TF_VAR_vm2_ssh_public_key: ${{ secrets.VM_SSH_PUBLIC_KEY }}
+      TF_VAR_vm1_ssh_public_key_path: ${{ secrets.VM_SSH_PUBLIC_KEY }}
+      TF_VAR_vm2_ssh_public_key_path: ${{ secrets.VM_SSH_PUBLIC_KEY }}
 
     defaults:
       run:
