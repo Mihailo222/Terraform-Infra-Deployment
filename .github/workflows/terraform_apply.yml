@@ -3,15 +3,25 @@ name: 'Terraform'
 on:
 
   # Kada se PR merge-uje u main -> pokreće se push event
+  workflow_dispatch:
 
+    
   push:
     branches: [ "main" ]
+
+    paths:
+      - 'aks-deployment/**'
+      - '.github/workflows/terraform-apply.yml'
 
   # Kada se napravi/update-uje PR prema main
   
   pull_request:
     branches:
       - main
+
+    paths:
+      - 'aks-deployment/**'
+      - '.github/workflows/terraform-apply.yml'
 
 permissions:
   contents: read
