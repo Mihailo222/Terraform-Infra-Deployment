@@ -61,9 +61,6 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
-      - name: Terraform Force Unlock
-        run: terraform force-unlock -force f3050d40-a5e5-831d-f670-8b00ea1e4c6f
-
 
       - name: Terraform destroy
         run: terraform destroy -auto-approve -input=false -lock-timeout=1m
