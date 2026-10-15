@@ -80,7 +80,9 @@ jobs:
 # APPLY SE DESAVA SAMO NA PUSH NA MAIN
 
     - name: Terraform Apply
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      if: |
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        github.event_name == 'workflow_dispatch'
       run: terraform apply -input=false -auto-approve
       working-directory: ${{ github.workspace }}/aks-deployment
  
