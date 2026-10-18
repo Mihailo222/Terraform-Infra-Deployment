@@ -270,27 +270,26 @@ module "virtual_machine_2" {
 # deploying AKS cluster with terraform 
 ############ LETS DO THIS #################
 
-#module "ServicePrincipal" {
-#  source = "./modules/service_principal"
-#}
+module "ServicePrincipal" {
+  source = "./modules/service_principal"
+}
 
-#resource "azurerm_role_assignment" "rolespn" {
-#  scope = "/subscriptions/${var.SUBSCRIPTION_ID}"
-#  role_definition_name = "Contributor"
-#  principal_id = module.ServicePrincipal.service_principal_id
-#  depends_on = [ module.ServicePrincipal ]
+resource "azurerm_role_assignment" "rolespn" {
+  scope = "/subscriptions/${var.SUBSCRIPTION_ID}"
+  role_definition_name = "Contributor"
+  principal_id = module.ServicePrincipal.service_principal_id
+  depends_on = [ module.ServicePrincipal ]
+}
 
-#}
+module "aks_cluster" { 
+  source = "./modules/cluster"
+  #SP client ID and client secret !!!
+  serviceprincipal_id = module.ServicePrincipal.client_id  #client id
+  serviceprincipal_key = module.ServicePrincipal.client_secret #client secret
+  tenant_id = var.tenant_id
 
-#module "aks_cluster" { 
-#  source = "./modules/cluster"
-#  #SP client ID and client secret !!!
-#  serviceprincipal_id = module.ServicePrincipal.client_id  #client id
-#  serviceprincipal_key = module.ServicePrincipal.client_secret #client secret
-#  tenant_id = var.tenant_id
-
-#  depends_on = [ azurerm_role_assignment.rolespn, module.ServicePrincipal ]
-#}
+  depends_on = [ azurerm_role_assignment.rolespn, module.ServicePrincipal ]
+}
 
 
 #module "keyvault" {
