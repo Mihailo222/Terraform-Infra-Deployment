@@ -27,6 +27,9 @@ jobs:
       TF_VAR_vm1_ssh_public_key_path: ${{ secrets.VM_SSH_PUBLIC_KEY }}
       TF_VAR_vm2_ssh_public_key_path: ${{ secrets.VM_SSH_PUBLIC_KEY }}
 
+      TF_VAR_tenant_id: ${{ secrets.TENANT_ID }}
+      TF_VAR_SUBSCRIPTION_ID: ${{ secrets.SUBSCRIPTION_ID }}
+
     defaults:
       run:
         shell: bash
