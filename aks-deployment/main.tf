@@ -5,7 +5,7 @@ terraform {
     container_name       = "terraform-tfstate-container"
     key                  = "terraform.tfstate"
 }
-}
+
 
   required_providers {
   
@@ -19,6 +19,7 @@ terraform {
    source  = "hashicorp/azuread"
    version = "~> 3.0"
  }
+}
 }
  
 data "azurerm_client_config" "current" {}
