@@ -4,28 +4,28 @@ terraform {
     storage_account_name = "tfsaccsa"
     container_name       = "terraform-tfstate-container"
     key                  = "terraform.tfstate"
-}
-
-
-  required_providers {
-  
-  provider "azurerm" {
-  # The "feature" block is required for AzureRM provider > 2.x.
-  version = ">= 3.50.0"
-  features {}
   }
 
- azuread = {
-   source  = "hashicorp/azuread"
-   version = "~> 3.0"
- }
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 4.0"
+    }
+
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 3.0"
+    }
+  }
 }
+
+provider "azurerm" {
+  features {}
 }
- 
+
+provider "azuread" {}
+
 data "azurerm_client_config" "current" {}
-
-
-
 
 ############################################# calling resource group module #####################################################
 
