@@ -6,11 +6,19 @@ terraform {
     key                  = "terraform.tfstate"
 }
 }
- 
-provider "azurerm" {
+
+  required_providers {
+  
+  provider "azurerm" {
   # The "feature" block is required for AzureRM provider > 2.x.
   version = ">= 3.50.0"
   features {}
+  }
+
+ azuread = {
+   source  = "hashicorp/azuread"
+   version = "~> 3.0"
+ }
 }
  
 data "azurerm_client_config" "current" {}
