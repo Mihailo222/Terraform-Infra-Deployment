@@ -30,7 +30,7 @@ sr_access = "Allow"
 sr_protocol = "Tcp"
 sr_source_port_range = "*"
 sr_destination_port_range = "22"
-sr_source_address_prefix = "185.26.174.232"
+sr_source_address_prefix = "82.117.214.166"
 sr_destination_address_prefix = "*"
 
 # Public IPs / NICs
@@ -72,7 +72,6 @@ vm2_version = "latest"
 vm2_application_role_tag = "message-broker"
 vm2_sa_type = "Standard_LRS"
 
-SUBSCRIPTION_ID="d625e1d8-8605-4e47-a941-00e7ddb795a2"
 #keyvault
 keyvault_name = "example-keyvault"
 keyvault_location = "centralus"
