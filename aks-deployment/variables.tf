@@ -234,7 +234,9 @@ variable "keyvault_resource_group_name" {
 }
 
 variable "SUBSCRIPTION_ID" {
-  
+}
+
+variable "tenant_id" {
 }
 
 #variable "public_ip3_name" {}
