@@ -3,19 +3,33 @@ resource "azurerm_resource_group" "aks_rg" {
   location = var.location
 }
 
+resource "azurerm_virtual_network" "aks_vnet" {
+  name                = "aks-vnet"
+  location            = azurerm_resource_group.aks_rg.location
+  resource_group_name = azurerm_resource_group.aks_rg.name
+  address_space       = ["10.224.0.0/16"]
+  
+}
+
+resource "azurerm_subnet" "aks_subnet" {
+  name                 = "aks-subnet"
+  resource_group_name  = azurerm_resource_group.aks_rg.name
+  virtual_network_name = azurerm_virtual_network.aks_vnet.name
+  address_prefixes     = ["10.224.0.0/16"]
+}
+
 resource "azurerm_kubernetes_cluster" "example_cluster" {
   name                = "exercises-aks"
   location            = azurerm_resource_group.aks_rg.location
   resource_group_name = azurerm_resource_group.aks_rg.name
   dns_prefix          = "exerciseaks"
-  #kubernetes_version = var.kubernetes_version
 
-# enable private AKS cluster accessible only from VNet
+  #kubernetes_version = var.kubernetes_version
+  #enable private AKS cluster accessible only from VNet
 
   private_cluster_enabled             = true
   private_cluster_public_fqdn_enabled = false
   private_dns_zone_id = "System"
-
 
   default_node_pool {
     name = "default"
@@ -23,6 +37,8 @@ resource "azurerm_kubernetes_cluster" "example_cluster" {
     vm_size = "Standard_E4s_v3"
     type = "VirtualMachineScaleSets"
     os_disk_size_gb = 250
+
+    vnet_subnet_id = azurerm_subnet.aks_subnet.id
   }
 
 # service principal we need it for deployment od k8s cluster. Svc principal needs to have a contributor permissions set

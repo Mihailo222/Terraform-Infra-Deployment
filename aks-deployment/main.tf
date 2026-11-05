@@ -303,6 +303,8 @@ module "aks_cluster" {
 }
 
 
+
+
 #module "keyvault" {
 #  source                      = "./modules/keyvault"
 #  keyvault_name               = var.keyvault_name
@@ -327,3 +329,24 @@ module "aks_cluster" {
 #    module.keyvault
 #  ]
 #}
+
+
+# creating vnet peering between aks cluster vnet and existing vnet
+
+resource "azurerm_virtual_network_peering" "vms-to-aks" {
+  name                      = "vms-to-aks"
+  resource_group_name       = var.rg_name
+  virtual_network_name      = var.vnet_name
+  remote_virtual_network_id = module.aks_cluster.aks_vnet_id  #output from aks module 
+
+  depends_on = [ module.aks_cluster ]
+}
+
+resource "azurerm_virtual_network_peering" "aks-to-vms" {
+  name                      = "aks-to-vms"
+  resource_group_name       = var.rg_name
+  virtual_network_name      = module.aks_cluster.aks_vnet_name  # output is rg modula
+  remote_virtual_network_id = var.vnet_name
+
+  depends_on = [ module.aks_cluster ]
+}
