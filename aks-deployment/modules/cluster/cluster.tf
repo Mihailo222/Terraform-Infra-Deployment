@@ -10,6 +10,13 @@ resource "azurerm_kubernetes_cluster" "example_cluster" {
   dns_prefix          = "exerciseaks"
   #kubernetes_version = var.kubernetes_version
 
+# enable private AKS cluster accessible only from VNet
+
+  private_cluster_enabled             = true
+  private_cluster_public_fqdn_enabled = false
+  private_dns_zone_id = "System"
+
+
   default_node_pool {
     name = "default"
     node_count = 1
