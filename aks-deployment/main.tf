@@ -297,10 +297,6 @@ module "aks_cluster" {
   serviceprincipal_key = module.ServicePrincipal.client_secret #client secret
   tenant_id = var.tenant_id
 
-  private_cluster_enabled             = true
-  private_cluster_public_fqdn_enabled = false
-
-  private_dns_zone_id = "System"
 
 
   depends_on = [ azurerm_role_assignment.rolespn, module.ServicePrincipal ]
