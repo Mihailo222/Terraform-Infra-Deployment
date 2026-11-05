@@ -339,14 +339,14 @@ resource "azurerm_virtual_network_peering" "vms-to-aks" {
   virtual_network_name      = var.vnet_name
   remote_virtual_network_id = module.aks_cluster.aks_vnet_id  #output from aks module 
 
-  depends_on = [ module.aks_cluster ]
+  depends_on = [ module.aks_cluster, module.virtual_network ]
 }
 
 resource "azurerm_virtual_network_peering" "aks-to-vms" {
   name                      = "aks-to-vms"
   resource_group_name       = var.rg_name
   virtual_network_name      = module.aks_cluster.aks_vnet_name  # output is rg modula
-  remote_virtual_network_id = var.vnet_name
+  remote_virtual_network_id = module.virtual_network.vnet_id  # output from vnet module
 
-  depends_on = [ module.aks_cluster ]
+  depends_on = [ module.aks_cluster, module.virtual_network ]
 }
