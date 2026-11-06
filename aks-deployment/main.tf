@@ -350,3 +350,38 @@ resource "azurerm_virtual_network_peering" "aks-to-vms" {
 
   depends_on = [ module.aks_cluster, module.virtual_network ]
 }
+
+
+# Dedicated Resource Group for DNS
+resource "azurerm_resource_group" "dns_rg" {
+  name     = "dns-resource-group"
+  location = "East US"
+}
+
+# Private DNS Zone
+resource "azurerm_private_dns_zone" "aks_dns" {
+  name                = "privatelink.eastus.azmk8s.io"
+  resource_group_name = azurerm_resource_group.dns_rg.name
+}
+
+# Link DNS Zone to AKS VNet
+resource "azurerm_private_dns_zone_virtual_network_link" "aks_link" {
+  name                  = "aks-vnet-link"
+  private_dns_zone_id = azurerm_private_dns_zone.aks_dns.id
+  virtual_network_id    = module.aks_cluster.aks_vnet_id 
+  
+  registration_enabled = false
+
+  depends_on = [ module.aks_cluster, azurerm_private_dns_zone.aks_dns ]
+}
+
+# Link DNS Zone to VM VNet
+resource "azurerm_private_dns_zone_virtual_network_link" "vm_link" {
+  name                  = "vm-vnet-link"
+  private_dns_zone_id = azurerm_private_dns_zone.aks_dns.id
+  virtual_network_id    = module.virtual_network.vnet_id 
+
+  registration_enabled = false
+
+  depends_on = [ module.virtual_network, azurerm_private_dns_zone.aks_dns ]
+}

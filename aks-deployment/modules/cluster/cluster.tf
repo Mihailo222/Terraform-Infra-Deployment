@@ -18,6 +18,15 @@ resource "azurerm_subnet" "aks_subnet" {
   address_prefixes     = ["10.224.0.0/16"]
 }
 
+
+#resource "azurerm_private_dns_zone" "private-dns-zone" {
+#  name                 = "myk8sprivzone.com"
+#  resource_group_name = azurerm_resource_group.aks_rg.name
+  
+#}
+
+
+
 resource "azurerm_kubernetes_cluster" "example_cluster" {
   name                = "exercises-aks"
   location            = azurerm_resource_group.aks_rg.location
@@ -29,7 +38,7 @@ resource "azurerm_kubernetes_cluster" "example_cluster" {
 
   private_cluster_enabled             = true
   private_cluster_public_fqdn_enabled = false
-  private_dns_zone_id = "System"
+  private_dns_zone_id = System #azurerm_private_dns_zone.private-dns-zone.id
 
   default_node_pool {
     name = "default"
