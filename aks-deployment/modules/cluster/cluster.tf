@@ -20,9 +20,9 @@ resource "azurerm_subnet" "aks_subnet" {
 
 
 #resource "azurerm_private_dns_zone" "private-dns-zone" {
-#  name                 = "myk8sprivzone.com"
+#  name                = "myk8sprivzone.com"
 #  resource_group_name = azurerm_resource_group.aks_rg.name
-  
+
 #}
 
 
@@ -38,7 +38,7 @@ resource "azurerm_kubernetes_cluster" "example_cluster" {
 
   private_cluster_enabled             = true
   private_cluster_public_fqdn_enabled = false
-  private_dns_zone_id = System #azurerm_private_dns_zone.private-dns-zone.id
+  private_dns_zone_id = var.private_dns_zone_id
 
   default_node_pool {
     name = "default"
