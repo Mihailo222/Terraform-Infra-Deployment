@@ -330,8 +330,8 @@ module "aks_cluster" {
 #  ]
 #}
 
-
 # creating vnet peering between aks cluster vnet and existing vnet
+# VNet peering is created on in boath RGs for boath vnets in rg where vn_name is !!!
 
 resource "azurerm_virtual_network_peering" "vms-to-aks" {
   name                      = "vms-to-aks"
@@ -344,7 +344,7 @@ resource "azurerm_virtual_network_peering" "vms-to-aks" {
 
 resource "azurerm_virtual_network_peering" "aks-to-vms" {
   name                      = "aks-to-vms"
-  resource_group_name       = var.rg_name
+  resource_group_name       = module.aks_cluster.aks_resource_group_name #rg od aks_vnet_name
   virtual_network_name      = module.aks_cluster.aks_vnet_name  # output is rg modula
   remote_virtual_network_id = module.virtual_network.vnet_id  # output from vnet module
 
