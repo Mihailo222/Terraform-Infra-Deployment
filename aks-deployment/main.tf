@@ -308,14 +308,14 @@ resource "azurerm_private_dns_zone" "aks_dns" {
 }
 
 # Link DNS Zone to AKS VNet
-resource "azurerm_private_dns_zone_virtual_network_link" "aks_link" {
-  name                  = "aks-vnet-link"
-  private_dns_zone_name = azurerm_private_dns_zone.aks_dns.name
-  resource_group_name   = azurerm_resource_group.dns_rg.name
-  registration_enabled = false
-  virtual_network_id   = module.aks_cluster.aks_vnet_id
-  depends_on = [ module.aks_cluster, azurerm_private_dns_zone.aks_dns ]
-}
+#resource "azurerm_private_dns_zone_virtual_network_link" "aks_link" {
+#  name                  = "aks-vnet-link"
+#  private_dns_zone_name = azurerm_private_dns_zone.aks_dns.name
+#  resource_group_name   = azurerm_resource_group.dns_rg.name
+#  registration_enabled = false
+#  virtual_network_id   = module.aks_cluster.aks_vnet_id
+#  depends_on = [ module.aks_cluster, azurerm_private_dns_zone.aks_dns ]
+#}
 
 # Link DNS Zone to VM VNet
 resource "azurerm_private_dns_zone_virtual_network_link" "vm_link" {
