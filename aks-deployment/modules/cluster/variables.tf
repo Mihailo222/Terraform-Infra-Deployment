@@ -18,3 +18,6 @@ variable "tenant_id" {
 variable "kubernetes_version" {
   default = "1.30.1"
 }
+
+variable "private_dns_zone_id" {
+}
