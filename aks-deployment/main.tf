@@ -404,10 +404,10 @@ resource "azurerm_virtual_network_gateway" "vpn_gateway" {
 
   type     = "Vpn"
   vpn_type = "RouteBased"
-  sku      = "VpnGw1"
+  sku      = "VpnGw1AZ"
 
   active_active = false
-  enable_bgp    = false
+  bgp_enabled   = false
 
   ip_configuration {
     name                 = "vnetGatewayConfig"
@@ -442,7 +442,7 @@ resource "azurerm_virtual_network_peering" "vms-to-aks" {
   allow_virtual_network_access = true
   allow_gateway_transit        = true
 
-  depends_on = [ module.aks_cluster, module.virtual_network ]
+  depends_on = [ module.aks_cluster, module.virtual_network, azurerm_virtual_network_gateway.vpn_gateway ]
 }
 
 resource "azurerm_virtual_network_peering" "aks-to-vms" {
@@ -454,5 +454,5 @@ resource "azurerm_virtual_network_peering" "aks-to-vms" {
   allow_virtual_network_access = true
   use_remote_gateways          = true
 
-  depends_on = [ module.aks_cluster, module.virtual_network ]
+  depends_on = [ module.aks_cluster, module.virtual_network, azurerm_virtual_network_gateway.vpn_gateway ]
 }
