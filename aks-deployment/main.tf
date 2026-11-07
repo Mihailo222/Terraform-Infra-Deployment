@@ -305,6 +305,8 @@ resource "azurerm_resource_group" "dns_rg" {
 resource "azurerm_private_dns_zone" "aks_dns" {
   name                = "privatelink.eastus.azmk8s.io"
   resource_group_name = azurerm_resource_group.dns_rg.name
+
+  depends_on = [ azurerm_resource_group.dns_rg ]
 }
 
 # Link DNS Zone to AKS VNet
@@ -325,7 +327,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "vm_link" {
   resource_group_name   = azurerm_resource_group.dns_rg.name
   registration_enabled = false
 
-  depends_on = [ module.virtual_network, azurerm_private_dns_zone.aks_dns ]
+  depends_on = [ module.virtual_network, azurerm_private_dns_zone.aks_dns, azurerm_resource_group.dns_rg ]
 }
 
 
@@ -381,6 +383,9 @@ resource "azurerm_subnet" "gateway_subnet" {
   resource_group_name  = var.vnet_rg_name
   virtual_network_name = var.vnet_name
   address_prefixes     = ["10.0.255.0/27"]
+
+  depends_on = [module.virtual_network]
+
 }
 
 # public ip for vpn gw
@@ -392,6 +397,8 @@ resource "azurerm_public_ip" "vpn_gateway_ip" {
 
   allocation_method = "Static"
   sku               = "Standard"
+
+  depends_on = [ module.virtual_network ]
 }
 
 
@@ -427,6 +434,8 @@ resource "azurerm_virtual_network_gateway" "vpn_gateway" {
 
     aad_issuer = "https://sts.windows.net/${var.tenant_id}/"
   }
+
+  depends_on = [ module.virtual_network, azurerm_public_ip.vpn_gateway_ip, azurerm_subnet.gateway_subnet ]
 }
 
 
@@ -435,7 +444,7 @@ resource "azurerm_virtual_network_gateway" "vpn_gateway" {
 
 resource "azurerm_virtual_network_peering" "vms-to-aks" {
   name                      = "vms-to-aks"
-  resource_group_name       = var.rg_name
+  resource_group_name       = var.vnet_rg_name
   virtual_network_name      = var.vnet_name
   remote_virtual_network_id = module.aks_cluster.aks_vnet_id  #output from aks module 
 
