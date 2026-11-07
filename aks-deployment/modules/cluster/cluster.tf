@@ -38,6 +38,9 @@ resource "azurerm_kubernetes_cluster" "example_cluster" {
 
   private_cluster_enabled             = true
   private_cluster_public_fqdn_enabled = false
+
+#The API server has no public IP address. AKS can still create a public DNS name for the private endpoint unless you disable the public FQDN.
+
   private_dns_zone_id = var.private_dns_zone_id
 
   default_node_pool {

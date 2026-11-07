@@ -332,7 +332,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "vm_link" {
 
 
 
-module "aks_cluster" { 
+module "aks_cluster" { # assign AKS cluster with appropriate dns zone !
   source = "./modules/cluster"
   #SP client ID and client secret !!!
   serviceprincipal_id = module.ServicePrincipal.client_id  #client id
@@ -372,6 +372,64 @@ module "aks_cluster" {
 #  ]
 #}
 
+
+# creating site to point vpn gateway 
+
+# subnet for vpn gw
+resource "azurerm_subnet" "gateway_subnet" {
+  name                 = "GatewaySubnet"
+  resource_group_name  = var.vnet_rg_name
+  virtual_network_name = var.vnet_name
+  address_prefixes     = ["10.0.255.0/27"]
+}
+
+# public ip for vpn gw
+
+resource "azurerm_public_ip" "vpn_gateway_ip" {
+  name                = "vpn-gateway-public-ip"
+  location            = var.vnet_rg_location # do we need AKS location ??
+  resource_group_name = var.vnet_rg_name
+
+  allocation_method = "Static"
+  sku               = "Standard"
+}
+
+
+# vpn gateway
+
+resource "azurerm_virtual_network_gateway" "vpn_gateway" {
+  name                = "vm-vnet-vpn-gateway"
+  location            = var.vnet_rg_location
+  resource_group_name = var.vnet_rg_name
+
+  type     = "Vpn"
+  vpn_type = "RouteBased"
+  sku      = "VpnGw1"
+
+  active_active = false
+  enable_bgp    = false
+
+  ip_configuration {
+    name                 = "vnetGatewayConfig"
+    public_ip_address_id = azurerm_public_ip.vpn_gateway_ip.id
+    subnet_id            = azurerm_subnet.gateway_subnet.id
+  }
+
+  vpn_client_configuration {
+    address_space = ["172.25.0.0/24"]
+
+    vpn_client_protocols = ["OpenVPN"]
+    vpn_auth_types       = ["AAD"]
+
+    aad_tenant = "https://login.microsoftonline.com/${var.tenant_id}/"
+
+    aad_audience = "c632b3df-fb67-4d84-bdcf-b95ad541b5c8"
+
+    aad_issuer = "https://sts.windows.net/${var.tenant_id}/"
+  }
+}
+
+
 # creating vnet peering between aks cluster vnet and existing vnet
 # VNet peering is created on in boath RGs for boath vnets in rg where vn_name is !!!
 
@@ -380,6 +438,9 @@ resource "azurerm_virtual_network_peering" "vms-to-aks" {
   resource_group_name       = var.rg_name
   virtual_network_name      = var.vnet_name
   remote_virtual_network_id = module.aks_cluster.aks_vnet_id  #output from aks module 
+
+  allow_virtual_network_access = true
+  allow_gateway_transit        = true
 
   depends_on = [ module.aks_cluster, module.virtual_network ]
 }
@@ -390,7 +451,8 @@ resource "azurerm_virtual_network_peering" "aks-to-vms" {
   virtual_network_name      = module.aks_cluster.aks_vnet_name  # output is rg modula
   remote_virtual_network_id = module.virtual_network.vnet_id  # output from vnet module
 
+  allow_virtual_network_access = true
+  use_remote_gateways          = true
+
   depends_on = [ module.aks_cluster, module.virtual_network ]
 }
-
-
