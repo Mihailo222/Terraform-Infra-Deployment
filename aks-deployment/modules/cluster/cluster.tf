@@ -1,37 +1,8 @@
-resource "azurerm_resource_group" "aks_rg" {
-  name     = "aks-test-rg"
-  location = var.location
-}
-
-resource "azurerm_virtual_network" "aks_vnet" {
-  name                = "aks-vnet"
-  location            = azurerm_resource_group.aks_rg.location
-  resource_group_name = azurerm_resource_group.aks_rg.name
-  address_space       = ["10.224.0.0/16"]
-  
-}
-
-resource "azurerm_subnet" "aks_subnet" {
-  name                 = "aks-subnet"
-  resource_group_name  = azurerm_resource_group.aks_rg.name
-  virtual_network_name = azurerm_virtual_network.aks_vnet.name
-  address_prefixes     = ["10.224.0.0/16"]
-}
-
-
-#resource "azurerm_private_dns_zone" "private-dns-zone" {
-#  name                = "myk8sprivzone.com"
-#  resource_group_name = azurerm_resource_group.aks_rg.name
-
-#}
-
-
-
 resource "azurerm_kubernetes_cluster" "example_cluster" {
-  name                = "exercises-aks"
-  location            = azurerm_resource_group.aks_rg.location
-  resource_group_name = azurerm_resource_group.aks_rg.name
-  dns_prefix          = "exerciseaks"
+  name                =  var.aks_cluster_name
+  location            = var.rg_location #azurerm_resource_group.aks_rg.location
+  resource_group_name = var.rg_name #azurerm_resource_group.aks_rg.name
+  dns_prefix          = var.aks_cluster_dns_prefix #"exerciseaks"
 
   #kubernetes_version = var.kubernetes_version
   #enable private AKS cluster accessible only from VNet
@@ -44,13 +15,14 @@ resource "azurerm_kubernetes_cluster" "example_cluster" {
   private_dns_zone_id = var.private_dns_zone_id
 
   default_node_pool {
-    name = "default"
-    node_count = 1
-    vm_size = "Standard_E4s_v3"
-    type = "VirtualMachineScaleSets"
-    os_disk_size_gb = 250
 
-    vnet_subnet_id = azurerm_subnet.aks_subnet.id
+    name =  var.default_node_pool_name #default 
+    node_count = var.default_node_pool_vm_count  #1
+    vm_size = var.default_node_pool_vm_size  #"Standard_E4s_v3"
+    type = var.default_node_pool_type  #"VirtualMachineScaleSets"
+    os_disk_size_gb = var.default_node_pool_os_disk_size_gb #250
+    vnet_subnet_id = var.aks_subnet_id #azurerm_subnet.aks_subnet.id
+
   }
 
 # service principal we need it for deployment od k8s cluster. Svc principal needs to have a contributor permissions set
@@ -61,20 +33,19 @@ resource "azurerm_kubernetes_cluster" "example_cluster" {
   
   #linux profile needed every time the node pool is VM scale set
   linux_profile { 
-    admin_username = "azureuser"
+    admin_username = var.admin_user
     ssh_key {
-      key_data = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDBKy1CQJ19EmDEivOXzANvEyvEQLzY7yOUhD0fSOs6qb0vvhZZAnk00C7sxN1CJ39leaVCug2X9YPFTUte9r4v7XoAd/MHyv8+P0Tz+9aQdXLYGSoWs8yEuyAe9e3Ntt+csreHa72AWKlbOQCzoIvv10BzTuDCI4hOExQVSId2xHrA+Zhgn3mBHkftyazitfzoKZ5nElB0Y4TSI6My0gmKFayvlRKJx4/wtWXXkxrqtufIdyFdRUP62RbMbHFCulsSaUlzr4IjMD66cU+JBJrVSHxt1CpbAaTDUMVA3jbE1mqpuFx5KF15goiKKjSKr7OPcC0ApHzRku/b3Ipc6FgfnZCxiLXVITG0o0AzDi32AGr4ed7xk7y3oeTXv2aEUyZOXA9S7sDrk3Jvmw39uK4LLYIMQ6qTo+Hk9+0qq/jOm2I93olT834mgTetHtKB1daxjp3vj/YPB5jEDza3KqbMiz4XTi3Xsj/TAlC8EfHvkPiMUuk6/9USS5WRErcwJ+W9tCX6PkeLEkf8ezdPO9IiuOmlLX//uLpXlC2uJIJKDBUagyAUE46OkpXQDfwm0rhEz5JCa+hMXOrJbTXtIi1c0lcMgJl+3hlktXVzDyVbkZDHYpTlx+EnyyAGbyMJJwYcNwgSvWfYpcPJkP9OryJoGM/kPBc7O5ggo2xw8rzozw== mymail@gmailexample.com"
-      // read this from a file !!!
+      key_data = var.ssh_key_data  #"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDBKy1CQJ19EmDEivOXzANvEyvEQLzY7yOUhD0fSOs6qb0vvhZZAnk00C7sxN1CJ39leaVCug2X9YPFTUte9r4v7XoAd/MHyv8+P0Tz+9aQdXLYGSoWs8yEuyAe9e3Ntt+csreHa72AWKlbOQCzoIvv10BzTuDCI4hOExQVSId2xHrA+Zhgn3mBHkftyazitfzoKZ5nElB0Y4TSI6My0gmKFayvlRKJx4/wtWXXkxrqtufIdyFdRUP62RbMbHFCulsSaUlzr4IjMD66cU+JBJrVSHxt1CpbAaTDUMVA3jbE1mqpuFx5KF15goiKKjSKr7OPcC0ApHzRku/b3Ipc6FgfnZCxiLXVITG0o0AzDi32AGr4ed7xk7y3oeTXv2aEUyZOXA9S7sDrk3Jvmw39uK4LLYIMQ6qTo+Hk9+0qq/jOm2I93olT834mgTetHtKB1daxjp3vj/YPB5jEDza3KqbMiz4XTi3Xsj/TAlC8EfHvkPiMUuk6/9USS5WRErcwJ+W9tCX6PkeLEkf8ezdPO9IiuOmlLX//uLpXlC2uJIJKDBUagyAUE46OkpXQDfwm0rhEz5JCa+hMXOrJbTXtIi1c0lcMgJl+3hlktXVzDyVbkZDHYpTlx+EnyyAGbyMJJwYcNwgSvWfYpcPJkP9OryJoGM/kPBc7O5ggo2xw8rzozw== mymail@gmailexample.com"
     }
   }
 
   network_profile {
-    network_plugin = "kubenet"
-    load_balancer_sku = "standard"
+
+    network_plugin = var.network_plugin   #"kubenet"
+    load_balancer_sku = var.load_balancer_sku #"standard"
   }
 
 
-  //azure_policy_enabled = false
 
   http_application_routing_enabled = false
 
@@ -90,4 +61,9 @@ resource "azurerm_kubernetes_cluster" "example_cluster" {
    local_account_disabled = true
 
   #support_plan = "AKSLongTermSupport" # for my version is necessary
+
+
 }
+
+
+

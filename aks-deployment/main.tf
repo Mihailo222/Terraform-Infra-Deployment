@@ -71,9 +71,7 @@ module "virtual_network" {
 module "subnet_one" {
 
   depends_on = [ module.resource_group, module.virtual_network ]
-
   source = "./modules/subnet"
-
   subnet_name = var.subnet1_name
   rg_name = var.subnet1_rg_name
   vnet_name = var.subnet1_vnet_name
@@ -86,9 +84,7 @@ module "subnet_one" {
 module "subnet_two" {
 
   depends_on = [ module.resource_group, module.virtual_network ]
-
   source = "./modules/subnet"
-
   subnet_name = var.subnet2_name
   rg_name = var.subnet2_rg_name
   vnet_name = var.subnet2_vnet_name
@@ -109,83 +105,83 @@ module "nsg_subnet_association" {
 
 ############################################# calling nic1 module #####################################################
 
-module "namespace_public_ip_with_nic_for_vm1" {
+#module "namespace_public_ip_with_nic_for_vm1" {
 
-  depends_on = [ module.resource_group, module.subnet_two ]
+#  depends_on = [ module.resource_group, module.subnet_two ]
 
-  source = "./modules/public_ip_with_nic"
+#  source = "./modules/public_ip_with_nic"
 
-  public_ip_name = var.public_ip1_name
-  rg_name = var.rg_name
-  rg_location = var.rg_location
-  allocation_method = var.ip1_allocation_method
-  nic_name = var.nic1_name
-  ip_configuration_name = var.ip1_configuration_name
-  subnet_id = module.subnet_two.subnet_id
-  private_ip_allocation = var.private_ip1_allocation
+#  public_ip_name = var.public_ip1_name
+#  rg_name = var.rg_name
+#  rg_location = var.rg_location
+#  allocation_method = var.ip1_allocation_method
+#  nic_name = var.nic1_name
+#  ip_configuration_name = var.ip1_configuration_name
+#  subnet_id = module.subnet_two.subnet_id
+#  private_ip_allocation = var.private_ip1_allocation
   
-}
+#}
 
 ############################################# calling vm module #####################################################
 
-module "virtual_machine_1" {
-  source = "./modules/vm"
-  depends_on = [ module.namespace_public_ip_with_nic_for_vm1 ]
-    vm_name = var.vm1_name
-    rg_name = var.rg_name
-    rg_location = var.rg_location
-    vm_size = var.vm1_size
-    admin_username = var.admin_username_for_vm1
-    ssh_public_key_path = var.vm1_ssh_public_key_path
-    nic_id = module.namespace_public_ip_with_nic_for_vm1.nic_id
-    vm_caching = var.vm1_caching
-    sa_type = var.vm1_sa_type
-    vm_publisher = var.vm1_publisher
-    vm_offer = var.vm1_offer
-    vm_sku = var.vm1_sku
-    vm_version = var.vm1_version
-    application_role = var.vm1_application_role_tag
-}
+#module "virtual_machine_1" {
+#  source = "./modules/vm"
+#  depends_on = [ module.namespace_public_ip_with_nic_for_vm1 ]
+#    vm_name = var.vm1_name
+#    rg_name = var.rg_name
+#    rg_location = var.rg_location
+#    vm_size = var.vm1_size
+#    admin_username = var.admin_username_for_vm1
+#    ssh_public_key_path = var.vm1_ssh_public_key_path
+#    nic_id = module.namespace_public_ip_with_nic_for_vm1.nic_id
+#    vm_caching = var.vm1_caching
+#    sa_type = var.vm1_sa_type
+#    vm_publisher = var.vm1_publisher
+#    vm_offer = var.vm1_offer
+#    vm_sku = var.vm1_sku
+#    vm_version = var.vm1_version
+#    application_role = var.vm1_application_role_tag
+#}
 
 ############################################# calling nic2 module #####################################################
 
-module "namespace_public_ip_with_nic_for_vm2" {
+#module "namespace_public_ip_with_nic_for_vm2" {
+#
+#  depends_on = [ module.resource_group, module.subnet_two ]
 
-  depends_on = [ module.resource_group, module.subnet_two ]
-
-  source = "./modules/public_ip_with_nic"
-
-  public_ip_name = var.public_ip2_name
-  rg_name = var.rg_name
-  rg_location = var.rg_location
-  allocation_method = var.ip2_allocation_method
-  nic_name = var.nic2_name
-  ip_configuration_name = var.ip2_configuration_name
-  subnet_id = module.subnet_two.subnet_id
-  private_ip_allocation = var.private_ip2_allocation
+#  source = "./modules/public_ip_with_nic"
+#
+#  public_ip_name = var.public_ip2_name
+#  rg_name = var.rg_name
+#  rg_location = var.rg_location
+#  allocation_method = var.ip2_allocation_method
+#  nic_name = var.nic2_name
+#  ip_configuration_name = var.ip2_configuration_name
+#  subnet_id = module.subnet_two.subnet_id
+#  private_ip_allocation = var.private_ip2_allocation
   
-}
+#}
 
 ############################################# calling vm2 module #####################################################
 
-module "virtual_machine_2" {
-  source = "./modules/vm"
-  depends_on = [ module.namespace_public_ip_with_nic_for_vm2 ]
-    vm_name = var.vm2_name
-    rg_name = var.rg_name
-    rg_location = var.rg_location
-    vm_size = var.vm2_size
-    admin_username = var.admin_username_for_vm2
-    ssh_public_key_path = var.vm2_ssh_public_key_path
-    nic_id = module.namespace_public_ip_with_nic_for_vm2.nic_id
-    vm_caching = var.vm2_caching
-    sa_type = var.vm2_sa_type
-    vm_publisher = var.vm2_publisher
-    vm_offer = var.vm2_offer
-    vm_sku = var.vm2_sku
-    vm_version = var.vm2_version
-    application_role = var.vm2_application_role_tag
-}
+#module "virtual_machine_2" {
+#  source = "./modules/vm"
+#  depends_on = [ module.namespace_public_ip_with_nic_for_vm2 ]
+#    vm_name = var.vm2_name
+#    rg_name = var.rg_name
+#    rg_location = var.rg_location
+#    vm_size = var.vm2_size
+#    admin_username = var.admin_username_for_vm2
+#    ssh_public_key_path = var.vm2_ssh_public_key_path
+#    nic_id = module.namespace_public_ip_with_nic_for_vm2.nic_id
+#    vm_caching = var.vm2_caching
+#    sa_type = var.vm2_sa_type
+#    vm_publisher = var.vm2_publisher
+#    vm_offer = var.vm2_offer
+#    vm_sku = var.vm2_sku
+#    vm_version = var.vm2_version
+#    application_role = var.vm2_application_role_tag
+#}
 
 ############################################# calling windows_vm module #####################################################
 
@@ -290,92 +286,95 @@ resource "azurerm_role_assignment" "rolespn" {
   depends_on = [ module.ServicePrincipal ]
 }
 
-
-
-
-
-
-# Dedicated Resource Group for DNS
+# Dedicated Resource Group for DNS private zone 
 resource "azurerm_resource_group" "dns_rg" {
   name     = "dns-resource-group"
   location = "East US"
 }
 
-# Private DNS Zone
-resource "azurerm_private_dns_zone" "aks_dns" {
-  name                = "privatelink.eastus.azmk8s.io"
-  resource_group_name = azurerm_resource_group.dns_rg.name
-
-  depends_on = [ azurerm_resource_group.dns_rg ]
+module "dns_rg" {
+    source = "./modules/resource_group"
+    rg_name = "dns-resource-group"
+    rg_location = "East US"
 }
 
-# Link DNS Zone to AKS VNet
-#resource "azurerm_private_dns_zone_virtual_network_link" "aks_link" {
-#  name                  = "aks-vnet-link"
-#  private_dns_zone_name = azurerm_private_dns_zone.aks_dns.name
-#  resource_group_name   = azurerm_resource_group.dns_rg.name
-#  registration_enabled = false
-#  virtual_network_id   = module.aks_cluster.aks_vnet_id
-#  depends_on = [ module.aks_cluster, azurerm_private_dns_zone.aks_dns ]
-#}
+# private DNS zone 
 
-# Link DNS Zone to VM VNet
-resource "azurerm_private_dns_zone_virtual_network_link" "vm_link" {
-  name                  = "vm-vnet-link"
-  private_dns_zone_name = azurerm_private_dns_zone.aks_dns.name
-  virtual_network_id    = module.virtual_network.vnet_id
-  resource_group_name   = azurerm_resource_group.dns_rg.name
-  registration_enabled = false
-
-  depends_on = [ module.virtual_network, azurerm_private_dns_zone.aks_dns, azurerm_resource_group.dns_rg ]
+module "private_dns_zone" {
+  source = "./modules/private_dns_zone"
+  private_dns_zone_name = "privatelink.eastus.azmk8s.io"
+  resource_group_name = module.dns_rg.name
+  depends_on = [ module.dns_rg ]
 }
 
+module "private_dns_zone_vnet_link" {
+  source = "./modules/private_dns_zone_vnet_link"
+  link_name = "vm-vnet-link"
+  private_dns_zone_name = module.private_dns_zone.private_dns_zone_name
+  virtual_network_id = module.virtual_network.vnet_id
+  resource_group_name = module.dns_rg.name
 
+  depends_on = [ module.virtual_network, module.private_dns_zone, module.dns_rg ]  
+}
 
+# aks resource group 
 
+module "aks_rg" {
+    source = "./modules/resource_group"
+    rg_name = "aks-test-rg"
+    rg_location = "eastus"
+} 
 
-module "aks_cluster" { # assign AKS cluster with appropriate dns zone !
+module "aks_vnet" {
+    source = "./modules/virtual_network"
+    vnet_name = "aks-vnet"
+    rg_name = module.aks_rg.name
+    rg_location = module.aks_rg.location
+    address_space = "10.224.0.0/16"
+    depends_on = [ module.aks_rg ]
+}
+
+module "aks_subnet" {
+
+  depends_on = [ module.aks_rg, module.aks_vnet ]
+  source = "./modules/subnet"
+  subnet_name = "aks-subnet"
+  rg_name = module.aks_rg.name
+  vnet_name = module.aks_vnet.name
+  subnet_address_space = ["10.224.0.0/16"]
+
+}
+
+module "aks_cluster" { 
+
   source = "./modules/cluster"
   #SP client ID and client secret !!!
-  serviceprincipal_id = module.ServicePrincipal.client_id  #client id
-  serviceprincipal_key = module.ServicePrincipal.client_secret #client secret
+  serviceprincipal_id = module.ServicePrincipal.client_id 
+  serviceprincipal_key = module.ServicePrincipal.client_secret
   tenant_id = var.tenant_id
+  private_dns_zone_id = module.private_dns_zone.private_dns_zone_id
+  rg_location = module.aks_rg.location
+  rg_name = module.aks_rg.name
+  aks_subnet_id = module.aks_subnet.subnet_id
+  
+  default_node_pool_name = "default"
+  default_node_pool_vm_count = 1
+  default_node_pool_vm_size = "Standard_E4s_v3" 
+  default_node_pool_type = "VirtualMachineScaleSets"
+  default_node_pool_os_disk_size_gb = 250 
+  aks_cluster_dns_prefix = "exerciseaks"
+  aks_cluster_name = "exerciseaks" 
 
-  private_dns_zone_id = azurerm_private_dns_zone.aks_dns.id
+  admin_user = "azureuser" 
+  ssh_key_data = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDBKy1CQJ19EmDEivOXzANvEyvEQLzY7yOUhD0fSOs6qb0vvhZZAnk00C7sxN1CJ39leaVCug2X9YPFTUte9r4v7XoAd/MHyv8+P0Tz+9aQdXLYGSoWs8yEuyAe9e3Ntt+csreHa72AWKlbOQCzoIvv10BzTuDCI4hOExQVSId2xHrA+Zhgn3mBHkftyazitfzoKZ5nElB0Y4TSI6My0gmKFayvlRKJx4/wtWXXkxrqtufIdyFdRUP62RbMbHFCulsSaUlzr4IjMD66cU+JBJrVSHxt1CpbAaTDUMVA3jbE1mqpuFx5KF15goiKKjSKr7OPcC0ApHzRku/b3Ipc6FgfnZCxiLXVITG0o0AzDi32AGr4ed7xk7y3oeTXv2aEUyZOXA9S7sDrk3Jvmw39uK4LLYIMQ6qTo+Hk9+0qq/jOm2I93olT834mgTetHtKB1daxjp3vj/YPB5jEDza3KqbMiz4XTi3Xsj/TAlC8EfHvkPiMUuk6/9USS5WRErcwJ+W9tCX6PkeLEkf8ezdPO9IiuOmlLX//uLpXlC2uJIJKDBUagyAUE46OkpXQDfwm0rhEz5JCa+hMXOrJbTXtIi1c0lcMgJl+3hlktXVzDyVbkZDHYpTlx+EnyyAGbyMJJwYcNwgSvWfYpcPJkP9OryJoGM/kPBc7O5ggo2xw8rzozw== mymail@gmailexample.com"
+  network_plugin = "kubenet" 
+  load_balancer_sku = "standard" 
+  
 
-  depends_on = [ azurerm_role_assignment.rolespn, module.ServicePrincipal, azurerm_private_dns_zone.aks_dns ]
+  depends_on = [ azurerm_role_assignment.rolespn, module.ServicePrincipal, module.private_dns_zone , module.aks_rg]
+
 }
 
-
-
-
-#module "keyvault" {
-#  source                      = "./modules/keyvault"
-#  keyvault_name               = var.keyvault_name
-#  keyvault_location                    = var.keyvault_location
-#  keyvault_resource_group_name = module.resource_group.id
-#  service_principal_name      = module.ServicePrincipal.service_principal_name
-#  service_principal_object_id = module.ServicePrincipal.service_principal_object_id
-#  service_principal_tenant_id = module.ServicePrincipal.service_principal_tenant_id
-
-#  depends_on = [
-#    module.ServicePrincipal, module.resource_group
-#  ]
-
-#}
-
-#resource "azurerm_key_vault_secret" "example" {
-#  name         = module.ServicePrincipal.client_id
-#  value        = module.ServicePrincipal.client_secret
-#  key_vault_id = module.keyvault.keyvault_id
-
-#  depends_on = [
-#    module.keyvault
-#  ]
-#}
-
-
-# creating site to point vpn gateway 
 
 # subnet for vpn gw
 resource "azurerm_subnet" "gateway_subnet" {
@@ -465,3 +464,4 @@ resource "azurerm_virtual_network_peering" "aks-to-vms" {
 
   depends_on = [ module.aks_cluster, module.virtual_network, azurerm_virtual_network_gateway.vpn_gateway ]
 }
+
