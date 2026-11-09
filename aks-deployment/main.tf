@@ -445,23 +445,23 @@ resource "azurerm_virtual_network_peering" "vms-to-aks" {
   name                      = "vms-to-aks"
   resource_group_name       = var.vnet_rg_name
   virtual_network_name      = var.vnet_name
-  remote_virtual_network_id = module.aks_cluster.aks_vnet_id  #output from aks module 
+  remote_virtual_network_id = module.aks_vnet.id  
 
   allow_virtual_network_access = true
   allow_gateway_transit        = true
 
-  depends_on = [ module.aks_cluster, module.virtual_network, azurerm_virtual_network_gateway.vpn_gateway ]
+  depends_on = [ module.virtual_network, azurerm_virtual_network_gateway.vpn_gateway ]
 }
 
 resource "azurerm_virtual_network_peering" "aks-to-vms" {
   name                      = "aks-to-vms"
-  resource_group_name       = module.aks_cluster.aks_resource_group_name #rg od aks_vnet_name
-  virtual_network_name      = module.aks_cluster.aks_vnet_name  # output is rg modula
+  resource_group_name       = module.aks_rg.name #module.aks_cluster.aks_resource_group_name #rg od aks_vnet_name
+  virtual_network_name      =  module.aks_vnet.name  #module.aks_cluster.aks_vnet_name  # output is rg modula
   remote_virtual_network_id = module.virtual_network.vnet_id  # output from vnet module
 
   allow_virtual_network_access = true
   use_remote_gateways          = true
 
-  depends_on = [ module.aks_cluster, module.virtual_network, azurerm_virtual_network_gateway.vpn_gateway ]
+  depends_on = [ module.virtual_network, azurerm_virtual_network_gateway.vpn_gateway ]
 }
 
