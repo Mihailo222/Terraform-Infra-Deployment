@@ -341,7 +341,7 @@ module "aks_subnet" {
   subnet_name = "aks-subnet"
   rg_name = module.aks_rg.name
   vnet_name = module.aks_vnet.name
-  subnet_address_space = ["10.224.0.0/16"]
+  subnet_address_space = "10.224.0.0/16"
 
 }
 
