@@ -445,7 +445,7 @@ resource "azurerm_virtual_network_peering" "vms-to-aks" {
   name                      = "vms-to-aks"
   resource_group_name       = var.vnet_rg_name
   virtual_network_name      = var.vnet_name
-  remote_virtual_network_id = module.aks_vnet.id  
+  remote_virtual_network_id = module.aks_vnet.vnet_id 
 
   allow_virtual_network_access = true
   allow_gateway_transit        = true
