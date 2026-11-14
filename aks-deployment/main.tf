@@ -40,9 +40,11 @@ module "resource_group" {
 module "namespace_network_security_group" {
     depends_on = [ module.resource_group ]
     source = "./modules/network_security_group"
+
     nsg_name = var.nsg_name
-    nsg_location = var.rg_location
-    nsg_rg_name = var.rg_name
+    nsg_location =  module.resource_group.location  #var.rg_location
+    nsg_rg_name = module.resource_group.name  #var.rg_name
+
     sr_name = var.sr_name
     sr_priority = var.sr_priority
     sr_direction = var.sr_direction
@@ -54,15 +56,15 @@ module "namespace_network_security_group" {
     sr_destination_address_prefix = var.sr_destination_address_prefix 
 }
 
-############################################# calling virtual network module #####################################################
-
+############################################# calling virtual network module #############################################
 
 module "virtual_network" {
   depends_on = [ module.resource_group ]
   source = "./modules/virtual_network"
+
   vnet_name = var.vnet_name
-  rg_name = var.vnet_rg_name
-  rg_location = var.vnet_rg_location
+  rg_name = module.resource_group.name  #var.vnet_rg_name
+  rg_location = module.resource_group.location  #var.vnet_rg_location
   address_space = var.address_space
 }
 
@@ -73,8 +75,8 @@ module "subnet_one" {
   depends_on = [ module.resource_group, module.virtual_network ]
   source = "./modules/subnet"
   subnet_name = var.subnet1_name
-  rg_name = var.subnet1_rg_name
-  vnet_name = var.subnet1_vnet_name
+  rg_name = module.resource_group.name
+  vnet_name = module.virtual_network.name
   subnet_address_space = var.subnet1_address_space
 
 }
@@ -86,13 +88,13 @@ module "subnet_two" {
   depends_on = [ module.resource_group, module.virtual_network ]
   source = "./modules/subnet"
   subnet_name = var.subnet2_name
-  rg_name = var.subnet2_rg_name
-  vnet_name = var.subnet2_vnet_name
+  rg_name = module.resource_group.name
+  vnet_name = module.virtual_network.name
   subnet_address_space = var.subnet2_address_space
 
 }
 
-############################################# calling subnet nsg association module #####################################################
+############################################# calling subnet nsg association module ####################################
 
 module "nsg_subnet_association" {
 
@@ -287,29 +289,29 @@ resource "azurerm_role_assignment" "rolespn" {
 }
 
 # Dedicated Resource Group for DNS private zone 
-resource "azurerm_resource_group" "dns_rg" {
-  name     = "dns-resource-group"
-  location = "East US"
-}
+#resource "azurerm_resource_group" "dns_rg" {
+#  name     = "dns-resource-group"
+#  location = "East US"
+#}
 
 module "dns_rg" {
     source = "./modules/resource_group"
-    rg_name = "dns-resource-group"
-    rg_location = "East US"
+    rg_name = var.dns_rg_name
+    rg_location = var.dns_rg_location
 }
 
 # private DNS zone 
 
 module "private_dns_zone" {
   source = "./modules/private_dns_zone"
-  private_dns_zone_name = "privatelink.eastus.azmk8s.io"
+  private_dns_zone_name = var.private_dns_zone_name
   resource_group_name = module.dns_rg.name
   depends_on = [ module.dns_rg ]
 }
 
 module "private_dns_zone_vnet_link" {
   source = "./modules/private_dns_zone_vnet_link"
-  link_name = "vm-vnet-link"
+  link_name = var.private_dns_zone_link_name
   private_dns_zone_name = module.private_dns_zone.private_dns_zone_name
   virtual_network_id = module.virtual_network.vnet_id
   resource_group_name = module.dns_rg.name
@@ -335,20 +337,19 @@ module "aks_vnet" {
 }
 
 module "aks_subnet" {
-
   depends_on = [ module.aks_rg, module.aks_vnet ]
   source = "./modules/subnet"
   subnet_name = "aks-subnet"
   rg_name = module.aks_rg.name
   vnet_name = module.aks_vnet.name
   subnet_address_space = "10.224.0.0/16"
-
 }
 
-module "aks_cluster" { 
+module "aks_cluster" {
 
   source = "./modules/cluster"
   #SP client ID and client secret !!!
+
   serviceprincipal_id = module.ServicePrincipal.client_id 
   serviceprincipal_key = module.ServicePrincipal.client_secret
   tenant_id = var.tenant_id
@@ -445,7 +446,7 @@ resource "azurerm_virtual_network_peering" "vms-to-aks" {
   name                      = "vms-to-aks"
   resource_group_name       = var.vnet_rg_name
   virtual_network_name      = var.vnet_name
-  remote_virtual_network_id = module.aks_vnet.vnet_id 
+  remote_virtual_network_id = module.aks_vnet.vnet_id  
 
   allow_virtual_network_access = true
   allow_gateway_transit        = true
@@ -464,4 +465,3 @@ resource "azurerm_virtual_network_peering" "aks-to-vms" {
 
   depends_on = [ module.virtual_network, azurerm_virtual_network_gateway.vpn_gateway ]
 }
-

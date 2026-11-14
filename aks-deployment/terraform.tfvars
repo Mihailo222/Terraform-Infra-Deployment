@@ -1,6 +1,11 @@
-# Resource group
+# Resource group for VMs
 rg_name = "vnet-rg"
 rg_location = "centralus"
+
+# NSG and rule
+nsg_name = "vnet-nsg"
+nsg_location = "centralus"
+nsg_rg_name = "vnet-rg"
 
 # VNet / subnets
 vnet_name = "vnet-example"
@@ -17,11 +22,6 @@ subnet2_name = "subnet2"
 subnet2_vnet_name = "vnet-example"
 subnet2_rg_name = "vnet-rg"
 subnet2_address_space = "10.0.2.0/24"
-
-# NSG and rule
-nsg_name = "vnet-nsg"
-nsg_location = "centralus"
-nsg_rg_name = "vnet-rg"
 
 sr_name = "allow-inbound-from-my-ip"
 sr_priority = 100
@@ -72,18 +72,12 @@ vm2_version = "latest"
 vm2_application_role_tag = "message-broker"
 vm2_sa_type = "Standard_LRS"
 
-#keyvault
-keyvault_name = "example-keyvault"
-keyvault_location = "centralus"
-keyvault_resource_group_name = "vnet-rg"
 
-# Windows placeholders (adjust if used)
-#win_vm_name = ""
-#win_admin_username = "azureuser"
-#win_admin_password = "REPLACE_WITH_SECURE_PASSWORD"
-#win_computer_name = ""
-#win_vm_publisher = ""
-#win_vm_offer = ""
-#win_vm_sku = ""
-#win_vm_version = ""
-#win_os_disk_name = ""
+# dns
+dns_rg_name = "dns-resource-group"
+dns_rg_location = "East US"
+private_dns_zone_name = "privatelink.eastus.azmk8s.io"
+private_dns_zone_link_name = "dns-link"
+
+
+# AKS cluster variables

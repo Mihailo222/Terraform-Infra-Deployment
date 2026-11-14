@@ -306,3 +306,12 @@ variable "tenant_id" {
 #variable "win_virtual_machine_size" {
   
 #}
+
+
+# dns
+
+variable "dns_rg_name" {
+}
+
+variable "dns_rg_location" {
+}
