@@ -224,14 +224,6 @@ variable "vm2_publisher" {
 
 }
 
-variable "keyvault_name" {
-}
-
-variable "keyvault_location" {
-}
-
-variable "keyvault_resource_group_name" {
-}
 
 variable "SUBSCRIPTION_ID" {
 }
