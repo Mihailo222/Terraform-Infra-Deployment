@@ -315,3 +315,9 @@ variable "dns_rg_name" {
 
 variable "dns_rg_location" {
 }
+
+variable "private_dns_zone_name" {
+}
+
+variable "private_dns_zone_link_name" {
+}
