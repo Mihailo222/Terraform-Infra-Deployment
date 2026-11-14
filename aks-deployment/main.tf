@@ -312,7 +312,7 @@ module "private_dns_zone" {
 module "private_dns_zone_vnet_link" {
   source = "./modules/private_dns_zone_vnet_link"
   link_name = var.private_dns_zone_link_name
-  private_dns_zone_name = module.private_dns_zone.name 
+  private_dns_zone_name = module.private_dns_zone.private_dns_zone_name 
   virtual_network_id = module.virtual_network.vnet_id
   resource_group_name = module.dns_rg.name
 
