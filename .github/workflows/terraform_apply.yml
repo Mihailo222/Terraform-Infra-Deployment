@@ -75,7 +75,10 @@ jobs:
 
     # Generates an execution plan for Terraform
     - name: Terraform Plan
-      run: terraform plan -input=false
+      run:  |
+        terraform plan -input=false
+        terraform plan -destroy -target=module.aks_cluster -out=aks-destroy.tfplan
+        terraform apply aks-destroy.tfplan
       working-directory: ${{ github.workspace }}/aks-deployment
 
 
