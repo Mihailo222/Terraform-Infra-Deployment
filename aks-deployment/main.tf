@@ -350,7 +350,7 @@ module "aks_subnet" {
 
 resource "azurerm_subnet" "dns_inbound_subnet" {
 
-  depends_on = [ module.aks_vnet, module.dns_resolver_subnet, module.aks_rg ]  
+  depends_on = [ module.aks_vnet, module.aks_rg ]  
 
   name                 = "dns-inbound-subnet"
   resource_group_name  = module.aks_rg.name
