@@ -342,8 +342,35 @@ module "aks_subnet" {
   subnet_name = "aks-subnet"
   rg_name = module.aks_rg.name
   vnet_name = module.aks_vnet.name
-  subnet_address_space = "10.224.0.0/16"
+  subnet_address_space = "10.224.0.0/24"
 }
+
+
+# Dedicated subnet for DNS Private Resolver Inbound Endpoint
+
+resource "azurerm_subnet" "dns_inbound_subnet" {
+
+  depends_on = [ module.aks_vnet, module.dns_resolver_subnet, module.aks_rg ]  
+
+  name                 = "dns-inbound-subnet"
+  resource_group_name  = module.aks_rg.name
+  virtual_network_name = module.aks_vnet.name
+
+  address_prefixes = ["10.224.255.0/28"]
+
+  delegation {
+    name = "dns-resolver-delegation"
+
+    service_delegation {
+      name = "Microsoft.Network/dnsResolvers"
+
+      actions = [
+        "Microsoft.Network/virtualNetworks/subnets/join/action"
+      ]
+    }
+  }
+}
+
 
 module "aks_cluster" {
 
