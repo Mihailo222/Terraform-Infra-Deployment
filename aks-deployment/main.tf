@@ -372,6 +372,36 @@ resource "azurerm_subnet" "dns_inbound_subnet" {
 }
 
 
+resource "azurerm_private_dns_resolver" "aks_dns_resolver" {
+
+
+  depends_on = [ module.aks_vnet, module.aks_rg, azurerm_subnet.dns_inbound_subnet ]  
+
+  
+  name                = "aks-private-dns-resolver"
+  resource_group_name = module.aks_rg.name
+  location            = module.aks_rg.location
+
+  virtual_network_id = module.aks_vnet.vnet_id
+
+}
+
+resource "azurerm_private_dns_resolver_inbound_endpoint" "aks_dns_inbound" {
+
+  depends_on = [ module.aks_rg, azurerm_subnet.dns_inbound_subnet, azurerm_private_dns_resolver.aks_dns_resolver ]  
+
+  name                    = "aks-dns-inbound-endpoint"
+  private_dns_resolver_id = azurerm_private_dns_resolver.aks_dns_resolver.id
+  location                = module.aks_rg.location
+
+  ip_configurations {
+    private_ip_allocation_method = "Dynamic"
+    subnet_id                    = azurerm_subnet.dns_inbound_subnet.id
+  }
+}
+
+
+
 module "aks_cluster" {
 
   source = "./modules/cluster"
