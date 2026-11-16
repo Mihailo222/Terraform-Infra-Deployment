@@ -522,3 +522,83 @@ resource "azurerm_virtual_network_peering" "aks-to-vms" {
 
   depends_on = [ module.virtual_network, azurerm_virtual_network_gateway.vpn_gateway ]
 }
+
+# subnet for app gw
+resource "azurerm_subnet" "app_gateway_subnet" {
+  depends_on = [ module.aks_rg, module.aks_vnet ]
+  name                 = "AppGatewaySubnet"
+  resource_group_name  = module.aks_rg.name
+  virtual_network_name = module.aks_vnet.name
+  address_prefixes     = ["10.224.1.0/24"]
+}
+
+resource "azurerm_public_ip" "app-gwy-ip" {
+  name                = "app-gateway-public-ip"
+  resource_group_name = module.aks_rg.name
+  location            = module.aks_rg.location
+  allocation_method   = "Static"
+
+  depends_on = [ module.aks_rg ]
+}
+
+
+# app gwy
+
+resource "azurerm_application_gateway" "app_gwy" {
+  name                = "aks-appgateway"
+  resource_group_name = module.aks_rg.name
+  location            = module.aks_rg.location
+
+  sku {
+    name     = "Standard_v2"
+    tier     = "Standard_v2"
+    capacity = 2
+  }
+
+  gateway_ip_configuration {
+    name      = "my-gateway-ip-configuration"
+    subnet_id = azurerm_subnet.app_gateway_subnet.id
+  }
+
+  frontend_port {
+    name = "fe-port"
+    port = 80
+  }
+
+  frontend_ip_configuration {
+    name                 = "fe-ip-config"
+    public_ip_address_id = azurerm_public_ip.app-gwy-ip.id
+  }
+
+  backend_address_pool {
+
+    name = "be-ip-address-pool"
+    fqdns = [ "ingress1.privatelink.eastus.azmk8s.io" ]
+
+  }
+
+  backend_http_settings {
+    name                  = "http-settings"
+    cookie_based_affinity = "Disabled"
+    path                  = "/path1/"
+    port                  = 80
+    protocol              = "Http"
+    request_timeout       = 60
+  }
+
+  http_listener {
+    name                           = "my-http-listener"
+    frontend_ip_configuration_name = "fe-ip-config"
+    frontend_port_name             = "fe-port"
+    protocol                       = "Http"
+  }
+
+  request_routing_rule {
+    name                       = "my-rule"
+    priority                   = 9
+    rule_type                  = "Basic"
+    http_listener_name         = "my-http-listener"
+    backend_address_pool_name  = "be-ip-address-pool"
+    backend_http_settings_name = "http-settings"
+  }
+}
