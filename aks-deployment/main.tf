@@ -590,6 +590,7 @@ resource "azurerm_application_gateway" "app_gwy" {
   backend_http_settings {
     name                  = "http-settings"
     cookie_based_affinity = "Disabled"
+    host_name = "ingress1.privatelink.eastus.azmk8s.io"
     path                  = "/"
     port                  = 80
     protocol              = "Http"
