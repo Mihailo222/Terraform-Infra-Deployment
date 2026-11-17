@@ -577,13 +577,24 @@ resource "azurerm_application_gateway" "app_gwy" {
 
   }
 
+  probe {
+    name                = "nginx-health"
+    protocol            = "Http"
+    path                = "/"
+    host                = "ingress1.privatelink.eastus.azmk8s.io"
+    interval            = 30
+    timeout             = 30
+    unhealthy_threshold = 3
+  }
+
   backend_http_settings {
     name                  = "http-settings"
     cookie_based_affinity = "Disabled"
-    path                  = "/path1/"
+    path                  = "/"
     port                  = 80
     protocol              = "Http"
     request_timeout       = 60
+    probe_name = "nginx-health"
   }
 
   http_listener {
