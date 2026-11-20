@@ -277,6 +277,8 @@ module "nsg_subnet_association" {
 # deploying AKS cluster with terraform 
 ############ LETS DO THIS #################
 
+
+#this is aks sp  
 module "ServicePrincipal" {
   source = "./modules/service_principal"
 }
@@ -287,6 +289,7 @@ resource "azurerm_role_assignment" "rolespn" {
   principal_id = module.ServicePrincipal.service_principal_id
   depends_on = [ module.ServicePrincipal ]
 }
+
 
 # Dedicated Resource Group for DNS private zone 
 #resource "azurerm_resource_group" "dns_rg" {
@@ -613,4 +616,83 @@ resource "azurerm_application_gateway" "app_gwy" {
     backend_address_pool_name  = "be-ip-address-pool"
     backend_http_settings_name = "http-settings"
   }
+
+  identity {
+  type         = "UserAssigned"
+  identity_ids = [
+    azurerm_user_assigned_identity.app_gateway_identity.id
+  ]
+}
+
+  depends_on = [ azurerm_subnet.app_gateway_subnet, azurerm_public_ip.app-gwy-ip, azurerm_user_assigned_identity.app_gateway_identity ]
+  
+}
+
+# vidi da li ovaj nas Service Princiapl ima rolu da kreira Key vault i da ga popunjava 
+
+# create a managed identity for the Application Gateway to access the Key Vault; it has to have the "Key Vault Secrets User" role assigned to it in order to access the secrets in the Key Vault
+resource "azurerm_user_assigned_identity" "app_gateway_identity" {
+  name                = "app-gateway-identity"
+  resource_group_name = module.aks_rg.name
+  location            = module.aks_rg.location
+
+}
+
+# connect managed identity to the Application Gateway
+#resource "azurerm_application_gateway_identity" "app_gateway_identity_connection" {
+#  
+#  depends_on = [ azurerm_application_gateway.app_gwy, azurerm_user_assigned_identity.app_gateway_identity ]
+
+#  application_gateway_id = azurerm_application_gateway.app_gwy.id
+#  identity {
+#    type = "UserAssigned"
+#    identity_ids = [azurerm_user_assigned_identity.app_gateway_identity.id]
+#  }
+#} 
+
+# create key vault for storing SSL/TLS certificates for the Application Gateway
+resource "azurerm_key_vault" "ssl_tls_key_vault" {
+
+  depends_on = [  module.aks_rg ]
+
+  name                        = "mihailo-tls-kv"
+  location                    = module.aks_rg.name
+  resource_group_name         = module.aks_rg.location 
+  rbac_authorization_enabled  = true
+  #enabled_for_disk_encryption = true
+  tenant_id                   =  var.tenant_id
+  soft_delete_retention_days  = 7
+  purge_protection_enabled    = false
+
+  sku_name = "standard"
+
+#  access_policy {
+#    # tenant_id and object_id of the Service Principal / Managed Identity that will be used to access the Key Vault
+#    tenant_id = var.tenant_id
+#    object_id = azurerm_user_assigned_identity.app_gateway_identity.principal_id
+
+#    key_permissions = [
+#      "Get",
+#    ]
+
+#    secret_permissions = [
+#      "Get",
+#    ]
+
+#    storage_permissions = [
+#      "Get",
+#    ]
+#  }
+
+}
+
+# Assign Key Vault Secrets User role to Application Gateway Managed Identity
+resource "azurerm_role_assignment" "app_gateway_key_vault_access" {
+  depends_on = [azurerm_user_assigned_identity.app_gateway_identity, azurerm_key_vault.ssl_tls_key_vault]
+
+  scope                = azurerm_key_vault.ssl_tls_key_vault.id
+  role_definition_name = "Key Vault Secrets User"
+
+  principal_id   = azurerm_user_assigned_identity.app_gateway_identity.principal_id
+  principal_type = "ServicePrincipal"
 }
