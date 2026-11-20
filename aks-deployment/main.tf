@@ -658,7 +658,7 @@ resource "azurerm_key_vault" "ssl_tls_key_vault" {
   name                        = "mihailo-tls-kv"
   location                    = module.aks_rg.location
   resource_group_name         = module.aks_rg.name 
-  rbac_authorization_enabled  = true
+  rbac_authorization_enabled  = false
   #enabled_for_disk_encryption = true
   tenant_id                   =  var.tenant_id
   soft_delete_retention_days  = 7
