@@ -498,7 +498,6 @@ resource "azurerm_virtual_network_gateway" "vpn_gateway" {
   depends_on = [ module.virtual_network, azurerm_public_ip.vpn_gateway_ip, azurerm_subnet.gateway_subnet ]
 }
 
-
 # creating vnet peering between aks cluster vnet and existing vnet
 # VNet peering is created on in boath RGs for boath vnets in rg where vn_name is !!!
 
@@ -514,6 +513,8 @@ resource "azurerm_virtual_network_peering" "vms-to-aks" {
   depends_on = [ module.virtual_network, azurerm_virtual_network_gateway.vpn_gateway ]
 }
 
+
+
 resource "azurerm_virtual_network_peering" "aks-to-vms" {
   name                      = "aks-to-vms"
   resource_group_name       = module.aks_rg.name #module.aks_cluster.aks_resource_group_name #rg od aks_vnet_name
@@ -526,129 +527,8 @@ resource "azurerm_virtual_network_peering" "aks-to-vms" {
   depends_on = [ module.virtual_network, azurerm_virtual_network_gateway.vpn_gateway ]
 }
 
-# subnet for app gw
-resource "azurerm_subnet" "app_gateway_subnet" {
-  depends_on = [ module.aks_rg, module.aks_vnet ]
-  name                 = "AppGatewaySubnet"
-  resource_group_name  = module.aks_rg.name
-  virtual_network_name = module.aks_vnet.name
-  address_prefixes     = ["10.224.1.0/24"]
-}
 
-resource "azurerm_public_ip" "app-gwy-ip" {
-  name                = "app-gateway-public-ip"
-  resource_group_name = module.aks_rg.name
-  location            = module.aks_rg.location
-  allocation_method   = "Static"
-
-  depends_on = [ module.aks_rg ]
-}
-
-
-# app gwy
-
-resource "azurerm_application_gateway" "app_gwy" {
-  name                = "aks-appgateway"
-  resource_group_name = module.aks_rg.name
-  location            = module.aks_rg.location
-
-  sku {
-    name     = "Standard_v2"
-    tier     = "Standard_v2"
-    capacity = 2
-  }
-
-  gateway_ip_configuration {
-    name      = "my-gateway-ip-configuration"
-    subnet_id = azurerm_subnet.app_gateway_subnet.id
-  }
-
-  frontend_port {
-    name = "fe-port"
-    port = 80
-  }
-
-  frontend_ip_configuration {
-    name                 = "fe-ip-config"
-    public_ip_address_id = azurerm_public_ip.app-gwy-ip.id
-  }
-
-  backend_address_pool {
-
-    name = "be-ip-address-pool"
-    fqdns = [ "ingress1.privatelink.eastus.azmk8s.io" ]
-
-  }
-
-  probe {
-    name                = "nginx-health"
-    protocol            = "Http"
-    path                = "/"
-    host                = "ingress1.privatelink.eastus.azmk8s.io"
-    interval            = 30
-    timeout             = 30
-    unhealthy_threshold = 3
-  }
-
-  backend_http_settings {
-    name                  = "http-settings"
-    cookie_based_affinity = "Disabled"
-    host_name = "ingress1.privatelink.eastus.azmk8s.io"
-    path                  = "/"
-    port                  = 80
-    protocol              = "Http"
-    request_timeout       = 60
-    probe_name = "nginx-health"
-  }
-
-  http_listener {
-    name                           = "my-http-listener"
-    frontend_ip_configuration_name = "fe-ip-config"
-    frontend_port_name             = "fe-port"
-    protocol                       = "Http"
-  }
-
-  request_routing_rule {
-    name                       = "my-rule"
-    priority                   = 9
-    rule_type                  = "Basic"
-    http_listener_name         = "my-http-listener"
-    backend_address_pool_name  = "be-ip-address-pool"
-    backend_http_settings_name = "http-settings"
-  }
-
-  identity {
-  type         = "UserAssigned"
-  identity_ids = [
-    azurerm_user_assigned_identity.app_gateway_identity.id
-  ]
-}
-
-  depends_on = [ azurerm_subnet.app_gateway_subnet, azurerm_public_ip.app-gwy-ip, azurerm_user_assigned_identity.app_gateway_identity ]
-  
-}
-
-# vidi da li ovaj nas Service Princiapl ima rolu da kreira Key vault i da ga popunjava 
-
-# create a managed identity for the Application Gateway to access the Key Vault; it has to have the "Key Vault Secrets User" role assigned to it in order to access the secrets in the Key Vault
-resource "azurerm_user_assigned_identity" "app_gateway_identity" {
-  name                = "app-gateway-identity"
-  resource_group_name = module.aks_rg.name
-  location            = module.aks_rg.location
-
-}
-
-# connect managed identity to the Application Gateway
-#resource "azurerm_application_gateway_identity" "app_gateway_identity_connection" {
-#  
-#  depends_on = [ azurerm_application_gateway.app_gwy, azurerm_user_assigned_identity.app_gateway_identity ]
-
-#  application_gateway_id = azurerm_application_gateway.app_gwy.id
-#  identity {
-#    type = "UserAssigned"
-#    identity_ids = [azurerm_user_assigned_identity.app_gateway_identity.id]
-#  }
-#} 
+#############################################################################################################################################################
 
 # create key vault for storing SSL/TLS certificates for the Application Gateway
 resource "azurerm_key_vault" "ssl_tls_key_vault" {
@@ -658,13 +538,14 @@ resource "azurerm_key_vault" "ssl_tls_key_vault" {
   name                        = "mihailo-tls-kv"
   location                    = module.aks_rg.location
   resource_group_name         = module.aks_rg.name 
-  rbac_authorization_enabled  = false
+  rbac_authorization_enabled  = true
   #enabled_for_disk_encryption = true
   tenant_id                   =  var.tenant_id
   soft_delete_retention_days  = 7
   purge_protection_enabled    = false
 
   sku_name = "standard"
+
 
 #  access_policy {
 #    # tenant_id and object_id of the Service Principal / Managed Identity that will be used to access the Key Vault
@@ -686,9 +567,56 @@ resource "azurerm_key_vault" "ssl_tls_key_vault" {
 
 }
 
+resource "azurerm_key_vault_certificate" "mihailo_tls_certificate" {
+  name         = "mihailo-tls-certificate"
+  key_vault_id = azurerm_key_vault.ssl_tls_key_vault.id
+
+  certificate {
+    contents = filebase64(var.pfx_certificate_path)
+    password = var.pfx_certificate_password
+  }
+
+  depends_on = [
+    azurerm_key_vault.ssl_tls_key_vault
+  ]
+}
+
+
+# subnet for app gw
+resource "azurerm_subnet" "app_gateway_subnet" {
+  depends_on = [ module.aks_rg, module.aks_vnet ]
+  name                 = "AppGatewaySubnet"
+  resource_group_name  = module.aks_rg.name
+  virtual_network_name = module.aks_vnet.name
+  address_prefixes     = ["10.224.1.0/24"]
+
+}
+
+resource "azurerm_public_ip" "app-gwy-ip" {
+  name                = "app-gateway-public-ip"
+  resource_group_name = module.aks_rg.name
+  location            = module.aks_rg.location
+  allocation_method   = "Static"
+
+  depends_on = [ module.aks_rg, module.aks_vnet ]
+}
+
+
+# vidi da li ovaj nas Service Princiapl ima rolu da kreira Key vault i da ga popunjava 
+
+# create a managed identity for the Application Gateway to access the Key Vault; it has to have the "Key Vault Secrets User" role assigned to it in order to access the secrets in the Key Vault
+resource "azurerm_user_assigned_identity" "app_gateway_identity" {
+  name                = "app-gateway-identity"
+  resource_group_name = module.aks_rg.name
+  location            = module.aks_rg.location
+
+  depends_on = [ module.aks_rg ]
+
+}
+
 # Assign Key Vault Secrets User role to Application Gateway Managed Identity
 resource "azurerm_role_assignment" "app_gateway_key_vault_access" {
-  depends_on = [azurerm_user_assigned_identity.app_gateway_identity, azurerm_key_vault.ssl_tls_key_vault]
+  depends_on = [azurerm_user_assigned_identity.app_gateway_identity, azurerm_key_vault.ssl_tls_key_vault, azurerm_key_vault_certificate.mihailo_tls_certificate]
 
   scope                = azurerm_key_vault.ssl_tls_key_vault.id
   role_definition_name = "Key Vault Secrets User"
@@ -696,3 +624,131 @@ resource "azurerm_role_assignment" "app_gateway_key_vault_access" {
   principal_id   = azurerm_user_assigned_identity.app_gateway_identity.principal_id
   principal_type = "ServicePrincipal"
 }
+
+# Application Gateway
+
+resource "azurerm_application_gateway" "app_gwy" {
+  name                = "aks-appgateway"
+  resource_group_name = module.aks_rg.name
+  location            = module.aks_rg.location
+
+  sku {
+    name     = "Standard_v2"
+    tier     = "Standard_v2"
+    capacity = 2
+  }
+
+  gateway_ip_configuration {
+    name      = "my-gateway-ip-configuration"
+    subnet_id = azurerm_subnet.app_gateway_subnet.id
+  }
+
+  # HTTP frontend port
+  frontend_port {
+    name = "fe-port"
+    port = 80
+  }
+
+  # HTTPS frontend port
+  frontend_port {
+    name = "fe-https-port"
+    port = 443
+  }
+
+  frontend_ip_configuration {
+    name                 = "fe-ip-config"
+    public_ip_address_id = azurerm_public_ip.app-gwy-ip.id
+  }
+
+  # Backend pool
+  backend_address_pool {
+    name  = "be-ip-address-pool"
+    fqdns = ["ingress1.privatelink.eastus.azmk8s.io"]
+  }
+
+  # Health probe
+  probe {
+    name                = "nginx-health"
+    protocol            = "Http"
+    path                = "/"
+    host                = "ingress1.privatelink.eastus.azmk8s.io"
+    interval            = 30
+    timeout             = 30
+    unhealthy_threshold = 3
+  }
+
+  # Backend HTTP settings
+  backend_http_settings {
+    name                  = "http-settings"
+    cookie_based_affinity = "Disabled"
+    host_name             = "ingress1.privatelink.eastus.azmk8s.io"
+    path                  = "/"
+    port                  = 80
+    protocol              = "Http"
+    request_timeout       = 60
+    probe_name            = "nginx-health"
+  }
+
+  # SSL certificate from Key Vault
+  ssl_certificate {
+    name                = "mihailo-tls-certificate"
+    key_vault_secret_id = azurerm_key_vault_certificate.mihailo_tls_certificate.versionless_secret_id
+  }
+
+  # Existing HTTP listener
+  http_listener {
+    name                           = "my-http-listener"
+    frontend_ip_configuration_name = "fe-ip-config"
+    frontend_port_name             = "fe-port"
+    protocol                       = "Http"
+  }
+
+  # New HTTPS listener
+  http_listener {
+    name                           = "my-https-listener"
+    frontend_ip_configuration_name = "fe-ip-config"
+    frontend_port_name             = "fe-https-port"
+    protocol                       = "Https"
+    ssl_certificate_name           = "mihailo-tls-certificate"
+  }
+
+  # Existing HTTP routing rule
+  request_routing_rule {
+    name                       = "my-rule"
+    priority                   = 9
+    rule_type                  = "Basic"
+    http_listener_name         = "my-http-listener"
+    backend_address_pool_name  = "be-ip-address-pool"
+    backend_http_settings_name = "http-settings"
+  }
+
+  # New HTTPS routing rule
+  request_routing_rule {
+    name                       = "my-https-rule"
+    priority                   = 10
+    rule_type                  = "Basic"
+    http_listener_name         = "my-https-listener"
+    backend_address_pool_name  = "be-ip-address-pool"
+    backend_http_settings_name = "http-settings"
+  }
+
+  # User Assigned Managed Identity
+  identity {
+    type = "UserAssigned"
+
+    identity_ids = [
+      azurerm_user_assigned_identity.app_gateway_identity.id
+    ]
+  }
+
+  depends_on = [
+    azurerm_subnet.app_gateway_subnet,
+    azurerm_public_ip.app-gwy-ip,
+    azurerm_user_assigned_identity.app_gateway_identity,
+    azurerm_key_vault.ssl_tls_key_vault,
+    azurerm_key_vault_certificate.mihailo_tls_certificate,
+    azurerm_role_assignment.app_gateway_key_vault_access
+  ]
+}
+
+

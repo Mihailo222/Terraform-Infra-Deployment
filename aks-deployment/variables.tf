@@ -313,3 +313,17 @@ variable "private_dns_zone_name" {
 
 variable "private_dns_zone_link_name" {
 }
+
+
+# variables for key vault
+
+variable "pfx_certificate_path" {
+  description = "Path to the PFX certificate"
+  type        = string
+}
+
+variable "pfx_certificate_password" {
+  description = "Password of the PFX certificate"
+  type        = string
+  sensitive   = true
+}
