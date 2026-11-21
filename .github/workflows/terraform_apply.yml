@@ -41,7 +41,7 @@ jobs:
       TF_VAR_vm2_ssh_public_key_path: ${{ secrets.VM_SSH_PUBLIC_KEY }}
       TF_VAR_tenant_id: ${{ secrets.TENANT_ID }}
       TF_VAR_SUBSCRIPTION_ID: ${{ secrets.SUBSCRIPTION_ID }}
-      TF_VAR_pfx_certificate_path: $RUNNER_TEMP/mihailo-tls.pfx
+      TF_VAR_pfx_certificate_path:  ${{ runner.temp }}/mihailo-tls.pfx
       TF_VAR_pfx_certificate_password: ${{ secrets.PFX_CERTIFICATE_PASSWORD }}
 
     # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
@@ -54,12 +54,14 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+      # Dekodiranje Base64 sadržaja i kreiranje PFX fajla
     - name: Prepare TLS certificate
-      working-directory: ./aks-deployment
       env:
         PFX_CERTIFICATE_BASE64: ${{ secrets.PFX_CERTIFICATE_BASE64 }}
       run: |
         echo "$PFX_CERTIFICATE_BASE64" | base64 --decode > "$RUNNER_TEMP/mihailo-tls.pfx"
+        test -s "$RUNNER_TEMP/mihailo-tls.pfx"
+        echo "PFX certificate successfully created."
 
     # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
     - name: Setup Terraform
