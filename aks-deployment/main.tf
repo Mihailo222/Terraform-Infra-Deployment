@@ -627,6 +627,8 @@ resource "azurerm_role_assignment" "app_gateway_key_vault_access" {
 
 # Application Gateway
 
+# Application Gateway
+
 resource "azurerm_application_gateway" "app_gwy" {
   name                = "aks-appgateway"
   resource_group_name = module.aks_rg.name
@@ -643,24 +645,24 @@ resource "azurerm_application_gateway" "app_gwy" {
     subnet_id = azurerm_subnet.app_gateway_subnet.id
   }
 
-  # HTTP frontend port
+  # Frontend ports
   frontend_port {
     name = "fe-port"
     port = 80
   }
 
-  # HTTPS frontend port
   frontend_port {
     name = "fe-https-port"
     port = 443
   }
 
+  # Frontend public IP
   frontend_ip_configuration {
     name                 = "fe-ip-config"
     public_ip_address_id = azurerm_public_ip.app-gwy-ip.id
   }
 
-  # Backend pool
+  # Backend pool - private AKS FQDN
   backend_address_pool {
     name  = "be-ip-address-pool"
     fqdns = ["ingress1.privatelink.eastus.azmk8s.io"]
@@ -695,39 +697,107 @@ resource "azurerm_application_gateway" "app_gwy" {
     key_vault_secret_id = azurerm_key_vault_certificate.mihailo_tls_certificate.versionless_secret_id
   }
 
-  # Existing HTTP listener
+  # HTTP listener - apex domain
   http_listener {
-    name                           = "my-http-listener"
+    name                           = "http-apex-listener"
     frontend_ip_configuration_name = "fe-ip-config"
     frontend_port_name             = "fe-port"
     protocol                       = "Http"
+    host_name                      = "mihailocustomdomain.net"
   }
 
-  # New HTTPS listener
+  # HTTP listener - www domain
   http_listener {
-    name                           = "my-https-listener"
+    name                           = "http-www-listener"
+    frontend_ip_configuration_name = "fe-ip-config"
+    frontend_port_name             = "fe-port"
+    protocol                       = "Http"
+    host_name                      = "www.mihailocustomdomain.net"
+  }
+
+  # HTTPS listener - apex domain
+  http_listener {
+    name                           = "https-apex-listener"
     frontend_ip_configuration_name = "fe-ip-config"
     frontend_port_name             = "fe-https-port"
     protocol                       = "Https"
+    host_name                      = "mihailocustomdomain.net"
+    require_sni                    = true
     ssl_certificate_name           = "mihailo-tls-certificate"
   }
 
-  # Existing HTTP routing rule
-  request_routing_rule {
-    name                       = "my-rule"
-    priority                   = 9
-    rule_type                  = "Basic"
-    http_listener_name         = "my-http-listener"
-    backend_address_pool_name  = "be-ip-address-pool"
-    backend_http_settings_name = "http-settings"
+  # HTTPS listener - www domain
+  http_listener {
+    name                           = "https-www-listener"
+    frontend_ip_configuration_name = "fe-ip-config"
+    frontend_port_name             = "fe-https-port"
+    protocol                       = "Https"
+    host_name                      = "www.mihailocustomdomain.net"
+    require_sni                    = true
+    ssl_certificate_name           = "mihailo-tls-certificate"
   }
 
-  # New HTTPS routing rule
+  # Redirect configurations
+
+  redirect_configuration {
+    name                 = "redirect-http-apex-to-https"
+    redirect_type        = "Permanent"
+    target_listener_name = "https-apex-listener"
+    include_path         = true
+    include_query_string = true
+  }
+
+  redirect_configuration {
+    name                 = "redirect-http-www-to-https"
+    redirect_type        = "Permanent"
+    target_listener_name = "https-apex-listener"
+    include_path         = true
+    include_query_string = true
+  }
+
+  redirect_configuration {
+    name                 = "redirect-https-www-to-apex"
+    redirect_type        = "Permanent"
+    target_listener_name = "https-apex-listener"
+    include_path         = true
+    include_query_string = true
+  }
+
+  # Routing rules
+
+  # HTTP apex -> HTTPS apex
   request_routing_rule {
-    name                       = "my-https-rule"
-    priority                   = 10
+    name                        = "http-apex-redirect-rule"
+    priority                    = 10
+    rule_type                   = "Basic"
+    http_listener_name          = "http-apex-listener"
+    redirect_configuration_name = "redirect-http-apex-to-https"
+  }
+
+  # HTTP www -> HTTPS apex
+  request_routing_rule {
+    name                        = "http-www-redirect-rule"
+    priority                    = 20
+    rule_type                   = "Basic"
+    http_listener_name          = "http-www-listener"
+    redirect_configuration_name = "redirect-http-www-to-https"
+  }
+
+  # HTTPS www -> HTTPS apex
+  request_routing_rule {
+    name                        = "https-www-redirect-rule"
+    priority                    = 30
+    rule_type                   = "Basic"
+    http_listener_name          = "https-www-listener"
+    redirect_configuration_name = "redirect-https-www-to-apex"
+  }
+
+  # HTTPS apex -> backend application
+  request_routing_rule {
+    name                       = "https-apex-backend-rule"
+    priority                   = 40
     rule_type                  = "Basic"
-    http_listener_name         = "my-https-listener"
+    http_listener_name         = "https-apex-listener"
     backend_address_pool_name  = "be-ip-address-pool"
     backend_http_settings_name = "http-settings"
   }
@@ -750,5 +820,3 @@ resource "azurerm_application_gateway" "app_gwy" {
     azurerm_role_assignment.app_gateway_key_vault_access
   ]
 }
-
-
